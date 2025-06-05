@@ -1,0 +1,277 @@
+import '../config/supabase_config.dart';
+import '../models/product_models.dart';
+
+class ProductService {
+  static final _supabase = SupabaseConfig.client;
+
+  /// Fetch all products with optional filters
+  static Future<List<Product>> getProducts({
+    ProductFilters? filters,
+    String sortField = 'product_name',
+    String sortDirection = 'asc',
+    int? limit,
+    int? offset,
+  }) async {
+    try {
+      dynamic query = _supabase
+          .from('products')
+          .select('''
+            id,
+            product_code,
+            product_name,
+            generic_name,
+            manufacturer,
+            category_id,
+            sub_category_id,
+            formulation_id,
+            unit_of_measure_smallest,
+            base_cost_per_strip,
+            is_active,
+            storage_conditions,
+            image_url,
+            min_stock_level_godown,
+            min_stock_level_mr,
+            lead_time_days,
+            created_at,
+            updated_at,
+            product_categories (
+              category_name
+            ),
+            product_sub_categories (
+              sub_category_name
+            ),
+            product_formulations (
+              formulation_name
+            )
+          ''');
+
+      // Apply filters
+      if (filters != null) {
+        if (filters.searchQuery?.isNotEmpty == true) {
+          query = query.or(
+            'product_name.ilike.%${filters.searchQuery}%,'
+            'product_code.ilike.%${filters.searchQuery}%,'
+            'generic_name.ilike.%${filters.searchQuery}%,'
+            'manufacturer.ilike.%${filters.searchQuery}%'
+          );
+        }
+
+        if (filters.categoryId?.isNotEmpty == true) {
+          query = query.eq('category_id', filters.categoryId!);
+        }
+
+        if (filters.subCategoryId?.isNotEmpty == true) {
+          query = query.eq('sub_category_id', filters.subCategoryId!);
+        }
+
+        if (filters.formulationId?.isNotEmpty == true) {
+          query = query.eq('formulation_id', filters.formulationId!);
+        }
+
+        if (filters.manufacturer?.isNotEmpty == true) {
+          query = query.ilike('manufacturer', '%${filters.manufacturer}%');
+        }
+
+        if (filters.isActive != null) {
+          query = query.eq('is_active', filters.isActive!);
+        }
+
+        if (filters.minCost != null) {
+          query = query.gte('base_cost_per_strip', filters.minCost!);
+        }
+
+        if (filters.maxCost != null) {
+          query = query.lte('base_cost_per_strip', filters.maxCost!);
+        }
+      }
+
+      // Apply sorting
+      query = query.order(sortField, ascending: sortDirection == 'asc');
+
+      // Apply pagination
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+      if (offset != null) {
+        query = query.range(offset, offset + (limit ?? 20) - 1);
+      }
+
+      final response = await query;
+      return (response as List)
+          .map((product) => Product.fromJson(product))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch products: $e');
+    }
+  }
+
+  /// Get total count of products with filters
+  static Future<int> getProductsCount({ProductFilters? filters}) async {
+    try {
+      dynamic query = _supabase
+          .from('products')
+          .select('*');
+
+      // Apply same filters as getProducts
+      if (filters != null) {
+        if (filters.searchQuery?.isNotEmpty == true) {
+          query = query.or(
+            'product_name.ilike.%${filters.searchQuery}%,'
+            'product_code.ilike.%${filters.searchQuery}%,'
+            'generic_name.ilike.%${filters.searchQuery}%,'
+            'manufacturer.ilike.%${filters.searchQuery}%'
+          );
+        }
+
+        if (filters.categoryId?.isNotEmpty == true) {
+          query = query.eq('category_id', filters.categoryId!);
+        }
+
+        if (filters.subCategoryId?.isNotEmpty == true) {
+          query = query.eq('sub_category_id', filters.subCategoryId!);
+        }
+
+        if (filters.formulationId?.isNotEmpty == true) {
+          query = query.eq('formulation_id', filters.formulationId!);
+        }
+
+        if (filters.manufacturer?.isNotEmpty == true) {
+          query = query.ilike('manufacturer', '%${filters.manufacturer}%');
+        }
+
+        if (filters.isActive != null) {
+          query = query.eq('is_active', filters.isActive!);
+        }
+
+        if (filters.minCost != null) {
+          query = query.gte('base_cost_per_strip', filters.minCost!);
+        }
+
+        if (filters.maxCost != null) {
+          query = query.lte('base_cost_per_strip', filters.maxCost!);
+        }
+      }
+
+      final response = await query;
+      return (response as List).length;
+    } catch (e) {
+      throw Exception('Failed to get products count: $e');
+    }
+  }
+
+  /// Get product categories
+  static Future<List<ProductCategory>> getCategories() async {
+    try {
+      final response = await _supabase
+          .from('product_categories')
+          .select('id, category_name, description, is_active')
+          .eq('is_active', true)
+          .order('category_name');
+
+      return (response as List)
+          .map((category) => ProductCategory.fromJson(category))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch categories: $e');
+    }
+  }
+
+  /// Get product sub-categories by category
+  static Future<List<ProductSubCategory>> getSubCategories(String categoryId) async {
+    try {
+      final response = await _supabase
+          .from('product_sub_categories')
+          .select('id, sub_category_name, category_id, description, is_active')
+          .eq('category_id', categoryId)
+          .eq('is_active', true)
+          .order('sub_category_name');
+
+      return (response as List)
+          .map((subCategory) => ProductSubCategory.fromJson(subCategory))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch sub-categories: $e');
+    }
+  }
+
+  /// Get product formulations
+  static Future<List<ProductFormulation>> getFormulations() async {
+    try {
+      final response = await _supabase
+          .from('product_formulations')
+          .select('id, formulation_name, is_active')
+          .eq('is_active', true)
+          .order('formulation_name');
+
+      return (response as List)
+          .map((formulation) => ProductFormulation.fromJson(formulation))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to fetch formulations: $e');
+    }
+  }
+
+  /// Get unique manufacturers
+  static Future<List<String>> getManufacturers() async {
+    try {
+      final response = await _supabase
+          .from('products')
+          .select('manufacturer')
+          .eq('is_active', true);
+
+      final manufacturers = (response as List)
+          .map((item) => item['manufacturer'] as String)
+          .where((manufacturer) => manufacturer.isNotEmpty)
+          .toSet()
+          .toList();
+
+      manufacturers.sort();
+      return manufacturers;
+    } catch (e) {
+      throw Exception('Failed to fetch manufacturers: $e');
+    }
+  }
+
+  /// Get product by ID
+  static Future<Product?> getProductById(String productId) async {
+    try {
+      final response = await _supabase
+          .from('products')
+          .select('''
+            id,
+            product_code,
+            product_name,
+            generic_name,
+            manufacturer,
+            category_id,
+            sub_category_id,
+            formulation_id,
+            unit_of_measure_smallest,
+            base_cost_per_strip,
+            is_active,
+            storage_conditions,
+            image_url,
+            min_stock_level_godown,
+            min_stock_level_mr,
+            lead_time_days,
+            created_at,
+            updated_at,
+            product_categories (
+              category_name
+            ),
+            product_sub_categories (
+              sub_category_name
+            ),
+            product_formulations (
+              formulation_name
+            )
+          ''')
+          .eq('id', productId)
+          .single();
+
+      return Product.fromJson(response);
+    } catch (e) {
+      return null;
+    }
+  }
+}

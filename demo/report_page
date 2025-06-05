@@ -1,0 +1,568 @@
+import 'package:flutter/material.dart';
+import '../models/stock_models.dart';
+import '../services/stock_service.dart';
+import '../widgets/stock_summary_dialog.dart';
+import '../widgets/stock_filters_widget.dart';
+import '../widgets/grouped_stock_table.dart';
+import '../widgets/detailed_stock_table.dart';
+
+class ReportPage extends StatefulWidget {
+  const ReportPage({super.key});
+
+  @override
+  State<ReportPage> createState() => _ReportPageState();
+}
+
+class _ReportPageState extends State<ReportPage> {
+  static const int itemsPerPage = 20;
+
+  StockFilters _filters = StockFilters();
+  int _currentPage = 1;
+  String _viewMode = 'grouped'; // 'detailed' or 'grouped'
+  List<StockItem> _stockData = [];
+  StockSummary? _summary;
+  bool _isLoading = false;
+  List<Map<String, dynamic>> _categories = [];
+  List<Map<String, dynamic>> _mrUsers = [];
+  String _sortField = 'product_name';
+  String _sortDirection = 'asc';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Load categories and MR users in parallel
+      final futures = await Future.wait([
+        StockService.getCategories(),
+        StockService.getMrUsers(),
+        StockService.calculateStockData(_filters),
+      ]);
+
+      _categories = futures[0] as List<Map<String, dynamic>>;
+      _mrUsers = futures[1] as List<Map<String, dynamic>>;
+      _stockData = futures[2] as List<StockItem>;
+      _summary = StockService.calculateStockSummary(_stockData);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshStockData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final stockData = await StockService.calculateStockData(_filters);
+      setState(() {
+        _stockData = stockData;
+        _summary = StockService.calculateStockSummary(_stockData);
+        _currentPage = 1; // Reset to first page when filters change
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading stock data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _updateFilters(StockFilters newFilters) {
+    setState(() {
+      _filters = newFilters;
+    });
+    _refreshStockData();
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _filters = StockFilters();
+    });
+    _refreshStockData();
+  }
+
+  void _changeViewMode(String mode) {
+    setState(() {
+      _viewMode = mode;
+      _currentPage = 1; // Reset to first page when changing view
+    });
+  }
+
+  void _handleSort(String field) {
+    setState(() {
+      if (_sortField == field) {
+        _sortDirection = _sortDirection == 'asc' ? 'desc' : 'asc';
+      } else {
+        _sortField = field;
+        _sortDirection = 'asc';
+      }
+    });
+  }
+
+  void _setCurrentPage(int page) {
+    setState(() {
+      _currentPage = page;
+    });
+  }
+
+  void _showSummaryDialog() {
+    if (_summary != null) {
+      showDialog(
+        context: context,
+        builder: (context) => StockSummaryDialog(summary: _summary!),
+      );
+    }
+  }
+
+  void _showAlertsDialog() {
+    if (_summary == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Stock Alerts',
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _buildAlertsDialogContent(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildAlertsDialogContent() {
+    final alerts = <Widget>[];
+    if (_summary!.lowStockItems > 0) {
+      alerts.add(
+        _buildAlertItem(
+          icon: Icons.warning_amber_rounded,
+          color: Colors.orange,
+          title: '${_summary!.lowStockItems} items with low stock levels',
+          subtitle: 'Some items are running low on stock',
+        ),
+      );
+    }
+    if (_summary!.expiringSoonItems > 0) {
+      alerts.add(
+        _buildAlertItem(
+          icon: Icons.schedule_rounded,
+          color: Colors.red,
+          title: '${_summary!.expiringSoonItems} items expiring soon',
+          subtitle: 'Check items that will expire in the next 30 days',
+        ),
+      );
+    }
+    return alerts;
+  }
+
+  Widget _buildAlertItem({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    color: Colors.grey.shade700,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _showFilters = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildContent(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF6366f1),
+            Color(0xFF8b5cf6),
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  // Icon and title
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.assessment_outlined,
+                      size: 24,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Stock Reports',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          'Monitor your inventory',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Filter button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _showFilters = !_showFilters;
+                        });
+                      },
+                      icon: Icon(
+                        _showFilters ? Icons.filter_alt_rounded : Icons.filter_alt_outlined,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Summary button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: _showSummaryDialog,
+                      icon: const Icon(
+                        Icons.summarize_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Refresh button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: _refreshStockData,
+                      icon: const Icon(
+                        Icons.refresh_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  // Alert badge
+                  if (_summary?.expiringSoonItems != null &&
+                      _summary!.expiringSoonItems > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: GestureDetector(
+                        onTap: _showAlertsDialog,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: _showAlertsDialog,
+                            icon: Badge(
+                              label: Text('${_summary!.expiringSoonItems}'),
+                              backgroundColor: Colors.white,
+                              textColor: Colors.red,
+                              child: const Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // View Mode Toggle
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildToggleButton(
+                        'grouped',
+                        'Grouped View',
+                        Icons.grid_view,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildToggleButton(
+                        'detailed',
+                        'Detailed View',
+                        Icons.list,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 0),
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+
+            // Filters Section
+            if (_showFilters)
+              Container(
+                margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: StockFiltersWidget(
+                  filters: _filters,
+                  categories: _categories,
+                  mrUsers: _mrUsers,
+                  onFiltersChanged: _updateFilters,
+                  onClearFilters: _clearFilters,
+                ),
+              ),
+
+            // Stock Table - Full width
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            color: Color(0xFF6366f1),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Loading stock data...',
+                            style: TextStyle(
+                              color: Color(0xFF64748b),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _viewMode == 'grouped'
+                      ? GroupedStockTable(
+                          stockData: _stockData,
+                          sortField: _sortField,
+                          sortDirection: _sortDirection,
+                          onSort: _handleSort,
+                          currentPage: _currentPage,
+                          itemsPerPage: itemsPerPage,
+                          onPageChanged: _setCurrentPage,
+                        )
+                      : DetailedStockTable(
+                          stockData: _stockData,
+                          sortField: _sortField,
+                          sortDirection: _sortDirection,
+                          onSort: _handleSort,
+                          currentPage: _currentPage,
+                          itemsPerPage: itemsPerPage,
+                          onPageChanged: _setCurrentPage,
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleButton(
+    String mode,
+    String label,
+    IconData icon,
+  ) {
+    final isSelected = _viewMode == mode;
+    const primaryColor = Color(0xFF6366f1);
+    
+    return GestureDetector(
+      onTap: () => _changeViewMode(mode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : const Color(0xFF64748b),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: isSelected ? Colors.white : const Color(0xFF64748b),
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+}

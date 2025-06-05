@@ -1,0 +1,321 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../blocs/auth/auth_bloc.dart';
+import '../../blocs/auth/auth_event.dart';
+import '../../blocs/auth/auth_state.dart';
+import '../../widgets/bottom_navigation.dart';
+import '../../widgets/new_order_modal.dart';
+
+class DashboardPage extends StatelessWidget {
+  const DashboardPage({super.key});
+
+  final List<NavItem> navItems = const [
+    NavItem(
+      title: 'Orders',
+      description: 'View and manage orders',
+      icon: Icons.description,
+      route: '/orders',
+      color: Color(0xFF818cf8),
+      gradientColors: [Color(0xFF818cf8), Color(0xFF6366f1)],
+    ),
+    NavItem(
+      title: 'Processing',
+      description: 'Track order processing',
+      icon: Icons.schedule,
+      route: '/processing',
+      color: Color(0xFFfb923c),
+      gradientColors: [Color(0xFFfb923c), Color(0xFFf97316)],
+    ),
+    NavItem(
+      title: 'Finance',
+      description: 'Financial overview',
+      icon: Icons.account_balance_wallet,
+      route: '/finance',
+      color: Color(0xFF34d399),
+      gradientColors: [Color(0xFF34d399), Color(0xFF10b981)],
+    ),
+    NavItem(
+      title: 'Profile',
+      description: 'Manage your profile',
+      icon: Icons.person,
+      route: '/profile',
+      color: Color(0xFFf472b6),
+      gradientColors: [Color(0xFFf472b6), Color(0xFFec4899)],
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        return state.maybeWhen(
+          authenticated: (user, dealer) {
+            return Scaffold(
+              backgroundColor: Colors.white,
+              body: SafeArea(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildHeader(context, dealer.name),
+                       _buildContent(context),
+                      const SizedBox(height: 100), // Space for bottom navigation
+                    ],
+                  ),
+                ),
+              ),
+              bottomNavigationBar: CustomBottomNavigation(
+                currentPath: '/',
+                onNewOrderPressed: () {
+                  _showNewOrderDialog(context);
+                },
+              ),
+            );
+          },
+          orElse: () {
+            // If not authenticated, redirect to login
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              context.go('/login');
+            });
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, String dealerName) {
+    return Container(
+      height: 240,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF6366f1), Color(0xFF4f46e5)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Background image with blur effect
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage(
+                    'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&auto=format&fit=crop&q=80',
+                  ),
+                  fit: BoxFit.cover,
+                  opacity: 0.9,
+                ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                       const Color(0xFF6366f1).withValues(alpha: 0.8),
+                       const Color(0xFF4f46e5).withValues(alpha: 0.8),
+                     ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Logout button
+          Positioned(
+            top: 16,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: () {
+                context.read<AuthBloc>().add(
+                  const AuthEvent.signOutRequested(),
+                );
+              },
+            ),
+          ),
+          // Welcome content
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 32),
+                Text(
+                  'Welcome back',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: const Color(0xFFe0e7ff),
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  dealerName,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                     color: Colors.white.withValues(alpha: 0.2),
+                     borderRadius: BorderRadius.circular(20),
+                   ),
+                  child: const Text(
+                    'Dealer Dashboard',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          const SizedBox(height: 16), // Add space after header
+          _buildNavGrid(context),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavGrid(BuildContext context) {
+    return Wrap(
+      spacing: 24,
+      runSpacing: 24,
+      children: navItems.map((item) => _buildNavItem(context, item)).toList(),
+    );
+  }
+
+  Widget _buildNavItem(BuildContext context, NavItem item) {
+    return Container(
+      width: (MediaQuery.of(context).size.width - 64) / 2, // Adjust width to account for increased spacing
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+           color: item.color.withValues(alpha: 0.2),
+           width: 2,
+           style: BorderStyle.solid,
+         ),
+        boxShadow: [
+           BoxShadow(
+             color: Colors.grey.withValues(alpha: 0.1),
+             blurRadius: 10,
+             offset: const Offset(0, 4),
+           ),
+         ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            // Navigate to the specified route
+            if (item.route.isNotEmpty) {
+              context.go(item.route);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(24), // Increased padding for better visual hierarchy
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                     color: item.color.withValues(alpha: 0.15),
+                     borderRadius: BorderRadius.circular(20),
+                   ),
+                  child: Icon(
+                    item.icon,
+                    size: 26,
+                    color: item.color,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  item.title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: item.gradientColors[1],
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.description,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF64748b),
+                    height: 1.4,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showNewOrderDialog(BuildContext context) {
+    NewOrderModal.show(
+      context: context,
+      onSuccess: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Optionally navigate to orders page to see the new order
+        context.go('/orders');
+      },
+    );
+  }
+}
+
+class NavItem {
+  final String title;
+  final String description;
+  final IconData icon;
+  final String route;
+  final Color color;
+  final List<Color> gradientColors;
+
+  const NavItem({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.route,
+    required this.color,
+    required this.gradientColors,
+  });
+}
