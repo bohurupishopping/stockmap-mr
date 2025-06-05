@@ -11,7 +11,7 @@ class DashboardPage extends StatelessWidget {
 
   final List<NavItem> navItems = const [
     NavItem(
-      title: 'Stock Management',
+      title: 'Stock',
       description: 'Manage inventory',
       icon: Icons.inventory_2,
       route: '/stock',

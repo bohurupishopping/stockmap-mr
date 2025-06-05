@@ -51,8 +51,6 @@ class ProductDetailsDialog extends StatelessWidget {
                   children: [
                     _buildProductInfo(theme, primaryColor),
                     const SizedBox(height: 24),
-                    _buildDetailsGrid(theme, primaryColor),
-                    const SizedBox(height: 24),
                     _buildStockInfo(theme, primaryColor),
                   ],
                 ),
@@ -268,34 +266,6 @@ class ProductDetailsDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailsGrid(ThemeData theme, Color primaryColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Product Details',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: primaryColor,
-          ),
-        ),
-        const SizedBox(height: 16),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          childAspectRatio: 3.0,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          children: [
-            _buildDetailCard('Cost/Strip', '₹${product.baseCostPerStrip.toStringAsFixed(2)}', Icons.currency_rupee_rounded, theme),
-            _buildDetailCard('Strips/Box', '${product.stripsPerBox}', Icons.inventory_rounded, theme),
-          ],
-        ),
-      ],
-    );
-  }
 
   Widget _buildStockInfo(ThemeData theme, Color primaryColor) {
     return Column(

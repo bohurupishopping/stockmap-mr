@@ -201,13 +201,13 @@ class _StockPageState extends State<StockPage> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.sort, color: Colors.white),
+            icon: const Icon(Icons.sort_by_alpha, color: Colors.white),
             onPressed: _showSortDialog,
           ),
           IconButton(
             icon: Stack(
               children: [
-                const Icon(Icons.filter_list, color: Colors.white),
+                const Icon(Icons.filter_alt, color: Colors.white),
                 if (_filters.hasActiveFilters)
                   Positioned(
                     right: 0,
@@ -238,10 +238,10 @@ class _StockPageState extends State<StockPage> {
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: 'Search products...',
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: const Icon(Icons.close_rounded),
                         onPressed: () {
                           _searchController.clear();
                           _onSearchChanged('');
@@ -323,7 +323,7 @@ class _StockPageState extends State<StockPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.inventory_2_outlined,
+            Icons.inventory_rounded,
             size: 80,
             color: Colors.grey.shade400,
           ),
