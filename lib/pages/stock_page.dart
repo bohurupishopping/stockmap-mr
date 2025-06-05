@@ -183,135 +183,306 @@ class _StockPageState extends State<StockPage> {
     );
   }
 
+  // Add state variable for search/filter visibility
+  bool _isSearchFilterVisible = false;
+
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF4F46E5);
-    
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text(
-          'Stock Management',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: primaryColor,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.sort_by_alpha, color: Colors.white),
-            onPressed: _showSortDialog,
-          ),
-          IconButton(
-            icon: Stack(
-              children: [
-                const Icon(Icons.filter_alt, color: Colors.white),
-                if (_filters.hasActiveFilters)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.orange,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            onPressed: _showFilterDialog,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
-            child: TextField(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Search products...',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () {
-                          _searchController.clear();
-                          _onSearchChanged('');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: primaryColor),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-              ),
-            ),
-          ),
-          // Results Count
-          if (_totalCount > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.white,
-              child: Row(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Column(
                 children: [
-                  Text(
-                    'Found $_totalCount products',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  if (_filters.hasActiveFilters) ...[
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _filters.clear();
-                          _searchController.clear();
-                        });
-                        _loadProducts(reset: true);
-                      },
-                      child: const Text('Clear Filters'),
-                    ),
-                  ],
+                  _buildHeader(),
+                  _buildContent(),
+                  const SizedBox(height: 100), // Space for bottom navigation
                 ],
               ),
             ),
-          // Products List
-          Expanded(
-            child: _products.isEmpty && !_isLoading
-                ? _buildEmptyState()
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _products.length + (_hasMoreData ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index >= _products.length) {
-                        return _buildLoadingIndicator();
-                      }
-                      
-                      final product = _products[index];
-                      return ProductCard(
-                        product: product,
-                        onTap: () => _onProductTap(product),
-                      );
-                    },
+            if (_isLoading) const Center(
+              child: CircularProgressIndicator(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF6366f1),
+            Color(0xFF8b5cf6),
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  // Icon and title
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.inventory_rounded,
+                      size: 24,
+                      color: Colors.white,
+                    ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Stock Management',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          'Manage your inventory',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Sort button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: _showSortDialog,
+                      icon: const Icon(
+                        Icons.sort_by_alpha,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Search/Filter toggle button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isSearchFilterVisible = !_isSearchFilterVisible;
+                        });
+                      },
+                      icon: Stack(
+                        children: [
+                          Icon(
+                            _isSearchFilterVisible ? Icons.filter_list_off : Icons.filter_list,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          if (_filters.hasActiveFilters)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.orange,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Refresh button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: () => _loadProducts(reset: true),
+                      icon: const Icon(
+                        Icons.refresh,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Collapsible Search and Filter Section
+            if (_isSearchFilterVisible)
+              _buildSearchAndFilters(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilters() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Search Bar
+          TextField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Search products...',
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              prefixIcon: Icon(Icons.search_rounded, color: Colors.white.withValues(alpha: 0.7)),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.close_rounded, color: Colors.white.withValues(alpha: 0.7)),
+                      onPressed: () {
+                        _searchController.clear();
+                        _onSearchChanged('');
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.white),
+              ),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.1),
+            ),
           ),
+          const SizedBox(height: 12),
+          // Filter and Results Row
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _showFilterDialog,
+                  icon: Stack(
+                    children: [
+                      const Icon(Icons.filter_alt, size: 18),
+                      if (_filters.hasActiveFilters)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Colors.orange,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  label: const Text('Filters'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              if (_totalCount > 0)
+                Text(
+                  'Found $_totalCount products',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                  ),
+                ),
+              if (_filters.hasActiveFilters) ...[
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _filters.clear();
+                      _searchController.clear();
+                    });
+                    _loadProducts(reset: true);
+                  },
+                  child: Text(
+                    'Clear',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0),
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          // Products List
+          _products.isEmpty && !_isLoading
+              ? _buildEmptyState()
+              : ListView.builder(
+                  controller: _scrollController,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _products.length + (_hasMoreData ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index >= _products.length) {
+                      return _buildLoadingIndicator();
+                    }
+                    
+                    final product = _products[index];
+                    return ProductCard(
+                      product: product,
+                      onTap: () => _onProductTap(product),
+                    );
+                  },
+                ),
         ],
       ),
     );

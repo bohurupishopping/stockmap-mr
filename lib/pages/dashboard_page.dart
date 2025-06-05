@@ -22,7 +22,7 @@ class DashboardPage extends StatelessWidget {
       title: 'Reports',
       description: 'View analytics',
       icon: Icons.analytics,
-      route: '/reports',
+      route: '/report',
       color: Color(0xFFfb923c),
       gradientColors: [Color(0xFFfb923c), Color(0xFFf97316)],
     ),
@@ -242,7 +242,7 @@ class _DashboardContent extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: () {
-            if (item.route == '/stock') {
+            if (item.route == '/stock' || item.route == '/report') {
               context.go(item.route);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
