@@ -48,148 +48,302 @@ class _StockSelectionSectionState extends State<StockSelectionSection> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Search and header
+        // Modern Header with search
         Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.white,
+          margin: const EdgeInsets.all(20),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header row
               Row(
                 children: [
-                  const Icon(
-                    Icons.inventory_2,
-                    color: Colors.blue,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Available Stock',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF6366f1),
+                          Color(0xFF8b5cf6),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6366f1).withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.inventory_2_rounded,
+                      color: Colors.white,
+                      size: 24,
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: widget.onRefresh,
-                    icon: const Icon(Icons.refresh),
-                    tooltip: 'Refresh Stock',
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Available Stock',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1f2937),
+                          ),
+                        ),
+                        Text(
+                          '${filteredStock.length} items available',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: widget.onRefresh,
+                      icon: Icon(
+                        Icons.refresh_rounded,
+                        color: Colors.grey[700],
+                      ),
+                      tooltip: 'Refresh Stock',
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search products, batches, or manufacturers...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                            });
-                          },
-                          icon: const Icon(Icons.clear),
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Theme.of(context).primaryColor,
-                      width: 2,
+              const SizedBox(height: 20),
+              
+              // Modern search bar
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[50],
+                  ],
                 ),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-              ),
-            ],
-          ),
-        ),
-        
-        // Stock list
-        Expanded(
-          child: widget.isLoading
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Loading available stock...'),
-                    ],
-                  ),
-                )
-              : filteredStock.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _searchQuery.isEmpty
-                                ? Icons.inventory_2_outlined
-                                : Icons.search_off,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _searchQuery.isEmpty
-                                ? 'No stock available'
-                                : 'No products found',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _searchQuery.isEmpty
-                                ? 'Contact your supervisor to get stock allocated'
-                                : 'Try adjusting your search terms',
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          if (_searchQuery.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            ElevatedButton(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search products, batches, manufacturers...',
+                    hintStyle: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 16,
+                    ),
+                    prefixIcon: Container(
+                      margin: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366f1).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF6366f1),
+                        size: 20,
+                      ),
+                    ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? Container(
+                            margin: const EdgeInsets.all(12),
+                            child: IconButton(
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() {
                                   _searchQuery = '';
                                 });
                               },
-                              child: const Text('Clear Search'),
+                              icon: Icon(
+                                Icons.close_rounded,
+                                color: Colors.grey[600],
+                                size: 20,
+                              ),
+                            ),
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF1f2937),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // Stock list with modern design
+        Expanded(
+          child: widget.isLoading
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 20,
+                              offset: const Offset(0, 4),
                             ),
                           ],
-                        ],
+                        ),
+                        child: const Column(
+                          children: [
+                            SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF6366f1),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                            Text(
+                              'Loading Stock',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1f2937),
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Fetching available products...',
+                              style: TextStyle(
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : filteredStock.isEmpty
+                  ? Center(
+                      child: Container(
+                        margin: const EdgeInsets.all(40),
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 20,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: _searchQuery.isEmpty
+                                    ? Colors.orange.withValues(alpha: 0.1)
+                                    : Colors.blue.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _searchQuery.isEmpty
+                                    ? Icons.inventory_2_rounded
+                                    : Icons.search_off_rounded,
+                                size: 48,
+                                color: _searchQuery.isEmpty
+                                    ? Colors.orange[600]
+                                    : Colors.blue[600],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              _searchQuery.isEmpty
+                                  ? 'No Stock Available'
+                                  : 'No Products Found',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1f2937),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _searchQuery.isEmpty
+                                  ? 'Contact your supervisor to get stock allocated to your account'
+                                  : 'Try adjusting your search terms or check the spelling',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 16,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            if (_searchQuery.isNotEmpty) ...[
+                              const SizedBox(height: 24),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _searchQuery = '';
+                                  });
+                                },
+                                icon: const Icon(Icons.clear_rounded),
+                                label: const Text('Clear Search'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF6366f1),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     )
                   : RefreshIndicator(
                       onRefresh: () async {
                         widget.onRefresh();
                       },
+                      color: const Color(0xFF6366f1),
                       child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         itemCount: filteredStock.length,
                         itemBuilder: (context, index) {
                           final stockItem = filteredStock[index];
@@ -239,144 +393,183 @@ class _StockItemCard extends StatelessWidget {
     final daysUntilExpiry = stockItem.expiryDate.difference(now).inDays;
     
     if (daysUntilExpiry <= 30) {
-      return Colors.red;
+      return const Color(0xFFef4444);
     } else if (daysUntilExpiry <= 90) {
-      return Colors.orange;
+      return const Color(0xFFf59e0b);
     } else {
-      return Colors.green;
+      return const Color(0xFF10b981);
+    }
+  }
+
+  String _getExpiryStatus() {
+    final now = DateTime.now();
+    final daysUntilExpiry = stockItem.expiryDate.difference(now).inDays;
+    
+    if (daysUntilExpiry <= 30) {
+      return 'Expires Soon';
+    } else if (daysUntilExpiry <= 90) {
+      return 'Expires in ${(daysUntilExpiry / 30).round()} months';
+    } else {
+      return 'Fresh Stock';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.grey.withValues(alpha: 0.1),
+          width: 1,
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
+            // Header with gradient background
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF6366f1).withValues(alpha: 0.05),
+                    const Color(0xFF8b5cf6).withValues(alpha: 0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        stockItem.productName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      // Product icon
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366f1).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.medication_rounded,
+                          color: Color(0xFF6366f1),
+                          size: 24,
                         ),
                       ),
-                      if (stockItem.genericName != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          stockItem.genericName!,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                      if (stockItem.manufacturer != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'by ${stockItem.manufacturer}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getExpiryColor().withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: _getExpiryColor().withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Text(
-                    'Exp: ${stockItem.expiryDate.day}/${stockItem.expiryDate.month}/${stockItem.expiryDate.year}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _getExpiryColor(),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 12),
-            
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Batch: ${stockItem.batchNumber}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Available: ${_formatQuantityDisplay()}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        Text(
-                          'Total: ${stockItem.currentQuantityStrips} strips',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '₹${stockItem.pricePerStrip.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              stockItem.productName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1f2937),
+                                height: 1.2,
+                              ),
+                            ),
+                            if (stockItem.genericName != null) ...[
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF6366f1).withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  stockItem.genericName!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF6366f1),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (stockItem.manufacturer != null) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.business_rounded,
+                                    size: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      stockItem.manufacturer!,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      const Text(
-                        'per strip',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                      // Expiry status
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getExpiryColor().withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _getExpiryColor().withValues(alpha: 0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 18,
+                              color: _getExpiryColor(),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${stockItem.expiryDate.day}/${stockItem.expiryDate.month}/${stockItem.expiryDate.year}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _getExpiryColor(),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              _getExpiryStatus(),
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: _getExpiryColor(),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -385,25 +578,198 @@ class _StockItemCard extends StatelessWidget {
               ),
             ),
             
-            const SizedBox(height: 12),
-            
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _showQuantityDialog(context);
-                },
-                icon: const Icon(Icons.add_shopping_cart, size: 18),
-                label: const Text(
-                  'Add to Cart',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            // Content section
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  // Batch and quantity info
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFf8fafc),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.grey.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10b981).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.qr_code_rounded,
+                                size: 20,
+                                color: Color(0xFF10b981),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Batch Number',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    stockItem.batchNumber,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1f2937),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.inventory_rounded,
+                                        size: 16,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Available Stock',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatQuantityDisplay(),
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1f2937),
+                                    ),
+                                  ),
+                                  Text(
+                                    '${stockItem.currentQuantityStrips} strips total',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[500],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10b981).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.currency_rupee_rounded,
+                                        size: 18,
+                                        color: Color(0xFF10b981),
+                                      ),
+                                      Text(
+                                        stockItem.pricePerStrip.toStringAsFixed(2),
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF10b981),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    'per strip',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Add to cart button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _showQuantityDialog(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366f1),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.add_shopping_cart_rounded,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Add to Cart',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
