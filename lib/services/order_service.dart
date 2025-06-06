@@ -274,7 +274,6 @@ class OrderService {
       final productId = item['product_id'] as String;
       
       // Get packaging info for this product
-      final packaging = packagingMap[productId] ?? <String, double>{};
       
       return MrStockItem.fromJson({
         'productId': productId,
