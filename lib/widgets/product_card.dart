@@ -359,19 +359,6 @@ class ProductCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildStockLevel(
-                  'Godown Stock',
-                  product.formattedGodownStock,
-                  Icons.warehouse_rounded,
-                  isCompact,
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 24,
-                color: Colors.grey.shade300,
-              ),
-              Expanded(
-                child: _buildStockLevel(
                   'MR Stock',
                   product.formattedMrStock,
                   Icons.person_rounded,
@@ -380,7 +367,7 @@ class ProductCard extends StatelessWidget {
               ),
             ],
           ),
-          if (!isCompact && product.totalClosingStock > 0) ...[
+          if (!isCompact && product.closingStockMr > 0) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -398,7 +385,7 @@ class ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Total: ${product.formattedTotalStock}',
+                    'Available: ${product.formattedMrStock}',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,

@@ -284,16 +284,6 @@ class ProductDetailsDialog extends StatelessWidget {
           children: [
             Expanded(
               child: _buildStockCard(
-                'Godown Stock',
-                product.formattedGodownStock,
-                Icons.warehouse_rounded,
-                theme,
-                isStock: true,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildStockCard(
                 'MR Stock',
                 product.formattedMrStock,
                 Icons.person_rounded,
@@ -324,7 +314,7 @@ class ProductDetailsDialog extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                'Total Stock: ',
+                'Available Stock: ',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -332,7 +322,7 @@ class ProductDetailsDialog extends StatelessWidget {
                 ),
               ),
               Text(
-                product.formattedTotalStock,
+                product.formattedMrStock,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
