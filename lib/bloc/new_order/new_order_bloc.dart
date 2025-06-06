@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../models/order_models.dart';
 import '../../services/order_service.dart';
+import '../../services/order_creation_service.dart';
 import 'new_order_event.dart';
 import 'new_order_state.dart';
 
@@ -235,7 +236,7 @@ class NewOrderBloc extends Bloc<NewOrderEvent, NewOrderState> {
 
     try {
       // First validate stock availability
-      final validation = await OrderService.validateStockAvailability(
+      final validation = await OrderCreationService.validateStockAvailability(
         state.cartItems,
       );
 
@@ -250,7 +251,7 @@ class NewOrderBloc extends Bloc<NewOrderEvent, NewOrderState> {
       }
 
       // Create the order
-      final orderId = await OrderService.createSalesOrder(
+      final orderId = await OrderCreationService.createSalesOrder(
         customerName: state.customerName,
         items: state.cartItems,
         notes: state.notes.isEmpty ? null : state.notes,
