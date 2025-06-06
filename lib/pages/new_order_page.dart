@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/new_order/new_order_bloc.dart';
 import '../bloc/new_order/new_order_event.dart';
 import '../bloc/new_order/new_order_state.dart';
@@ -9,6 +10,7 @@ import '../widgets/new_order/stock_selection_section.dart';
 import '../widgets/new_order/cart_section.dart';
 import '../widgets/new_order/customer_section.dart';
 import '../widgets/new_order/order_review_section.dart';
+import '../widgets/custom_bottom_navigation.dart';
 
 class NewOrderPage extends StatefulWidget {
   const NewOrderPage({super.key});
@@ -27,11 +29,6 @@ class _NewOrderPageState extends State<NewOrderPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    
-    // Auto-load MR stock when page initializes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<NewOrderBloc>().add(const NewOrderEvent.loadMrStock());
-    });
   }
 
   @override
@@ -84,7 +81,8 @@ class _NewOrderPageState extends State<NewOrderPage>
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => NewOrderBloc(),
+      create: (context) =>
+          NewOrderBloc()..add(const NewOrderEvent.loadMrStock()),
       child: BlocConsumer<NewOrderBloc, NewOrderState>(
         listener: (context, state) {
           if (state.hasError) {
@@ -99,7 +97,7 @@ class _NewOrderPageState extends State<NewOrderPage>
               ),
             );
           }
-          
+
           if (state.hasSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -120,97 +118,100 @@ class _NewOrderPageState extends State<NewOrderPage>
         builder: (context, state) {
           return LoadingOverlay(
             isLoading: state.isLoadingStock || state.isCreatingOrder,
-            child: Scaffold(
-              backgroundColor: Colors.grey[50],
-              body: SafeArea(
-                child: Column(
-                  children: [
-                    _buildModernHeader(state),
-                    _buildStepIndicator(),
-                    Expanded(
-                      child: PageView(
-                        controller: _pageController,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentStep = index;
-                          });
-                          _tabController.animateTo(index);
-                        },
-                        children: [
-                          StockSelectionSection(
-                            availableStock: state.availableStock,
-                            isLoading: state.isLoadingStock,
-                            onAddToCart: (stockItem, quantity) {
-                              context.read<NewOrderBloc>().add(
-                                    NewOrderEvent.addItemToCart(
-                                      stockItem: stockItem,
-                                      quantityStrips: quantity,
-                                    ),
-                                  );
-                            },
-                            onRefresh: () {
-                              context
-                                  .read<NewOrderBloc>()
-                                  .add(const NewOrderEvent.loadMrStock());
-                            },
-                          ),
-                          CartSection(
-                            cartItems: state.cartItems,
-                            onRemoveItem: (productId, batchId) {
-                              context.read<NewOrderBloc>().add(
-                                    NewOrderEvent.removeItemFromCart(
-                                      productId: productId,
-                                      batchId: batchId,
-                                    ),
-                                  );
-                            },
-                            onUpdateQuantity: (productId, batchId, quantity) {
-                              context.read<NewOrderBloc>().add(
-                                    NewOrderEvent.updateCartItemQuantity(
-                                      productId: productId,
-                                      batchId: batchId,
-                                      newQuantityStrips: quantity,
-                                    ),
-                                  );
-                            },
-                            onClearCart: () {
-                              context
-                                  .read<NewOrderBloc>()
-                                  .add(const NewOrderEvent.clearCart());
-                            },
-                          ),
-                          CustomerSection(
-                            customerName: state.customerName,
-                            notes: state.notes,
-                            onCustomerNameChanged: (name) {
-                              context.read<NewOrderBloc>().add(
-                                    NewOrderEvent.updateCustomerName(
-                                      customerName: name,
-                                    ),
-                                  );
-                            },
-                            onNotesChanged: (notes) {
-                              context.read<NewOrderBloc>().add(
-                                    NewOrderEvent.updateNotes(notes: notes),
-                                  );
-                            },
-                          ),
-                          OrderReviewSection(
-                            customerName: state.customerName,
-                            notes: state.notes,
-                            cartItems: state.cartItems,
-                            isCreatingOrder: state.isCreatingOrder,
-                            onConfirmOrder: () {
-                              context.read<NewOrderBloc>().add(
-                                    const NewOrderEvent.validateAndCreateOrder(),
-                                  );
-                            },
-                          ),
-                        ],
+            child: PageWithBottomNav(
+              currentPath: '/create',
+              onNewOrderPressed: () => context.go('/create'),
+              child: Container(
+                color: Colors.grey[50],
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      _buildStepIndicator(),
+                      Expanded(
+                        child: PageView(
+                          controller: _pageController,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentStep = index;
+                            });
+                            _tabController.animateTo(index);
+                          },
+                          children: [
+                            StockSelectionSection(
+                              availableStock: state.availableStock,
+                              isLoading: state.isLoadingStock,
+                              onAddToCart: (stockItem, quantity) {
+                                context.read<NewOrderBloc>().add(
+                                  NewOrderEvent.addItemToCart(
+                                    stockItem: stockItem,
+                                    quantityStrips: quantity,
+                                  ),
+                                );
+                              },
+                              onRefresh: () {
+                                context.read<NewOrderBloc>().add(
+                                  const NewOrderEvent.loadMrStock(),
+                                );
+                              },
+                            ),
+                            CartSection(
+                              cartItems: state.cartItems,
+                              onRemoveItem: (productId, batchId) {
+                                context.read<NewOrderBloc>().add(
+                                  NewOrderEvent.removeItemFromCart(
+                                    productId: productId,
+                                    batchId: batchId,
+                                  ),
+                                );
+                              },
+                              onUpdateQuantity: (productId, batchId, quantity) {
+                                context.read<NewOrderBloc>().add(
+                                  NewOrderEvent.updateCartItemQuantity(
+                                    productId: productId,
+                                    batchId: batchId,
+                                    newQuantityStrips: quantity,
+                                  ),
+                                );
+                              },
+                              onClearCart: () {
+                                context.read<NewOrderBloc>().add(
+                                  const NewOrderEvent.clearCart(),
+                                );
+                              },
+                            ),
+                            CustomerSection(
+                              customerName: state.customerName,
+                              notes: state.notes,
+                              onCustomerNameChanged: (name) {
+                                context.read<NewOrderBloc>().add(
+                                  NewOrderEvent.updateCustomerName(
+                                    customerName: name,
+                                  ),
+                                );
+                              },
+                              onNotesChanged: (notes) {
+                                context.read<NewOrderBloc>().add(
+                                  NewOrderEvent.updateNotes(notes: notes),
+                                );
+                              },
+                            ),
+                            OrderReviewSection(
+                              customerName: state.customerName,
+                              notes: state.notes,
+                              cartItems: state.cartItems,
+                              isCreatingOrder: state.isCreatingOrder,
+                              onConfirmOrder: () {
+                                context.read<NewOrderBloc>().add(
+                                  const NewOrderEvent.validateAndCreateOrder(),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    _buildNavigationButtons(state),
-                  ],
+                      _buildNavigationButtons(state),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -220,231 +221,84 @@ class _NewOrderPageState extends State<NewOrderPage>
     );
   }
 
-  Widget _buildModernHeader(NewOrderState state) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF6366f1),
-            Color(0xFF8b5cf6),
-          ],
-        ),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Row(
-              children: [
-                // Back button
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Icon and title
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.add_shopping_cart_rounded,
-                    size: 28,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Create New Order',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'Step ${_currentStep + 1} of 4',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Auto-refresh indicator
-                if (state.isLoadingStock)
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          // Step tabs
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                _buildStepTab(0, 'Stock', Icons.inventory_2_rounded),
-                _buildStepTab(1, 'Cart', Icons.shopping_cart_rounded),
-                _buildStepTab(2, 'Customer', Icons.person_rounded),
-                _buildStepTab(3, 'Review', Icons.receipt_long_rounded),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepTab(int index, String label, IconData icon) {
-    final isActive = index == _currentStep;
-    final isCompleted = index < _currentStep;
-    
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => _goToStep(index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isActive 
-                ? Colors.white 
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isActive 
-                    ? const Color(0xFF6366f1)
-                    : isCompleted
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.6),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isActive 
-                      ? const Color(0xFF6366f1)
-                      : isCompleted
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildStepIndicator() {
+    const stepLabels = ['Stock', 'Cart', 'Customer', 'Review'];
+
     return Container(
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: List.generate(4, (index) {
-          final isActive = index <= _currentStep;
+          final isActive = index == _currentStep;
           final isCompleted = index < _currentStep;
-          
+
           return Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? const Color(0xFF6366f1)
-                          : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                if (index < 3)
-                  Container(
-                    width: 24,
-                    height: 24,
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: isCompleted
-                          ? const Color(0xFF10b981)
-                          : isActive
-                              ? const Color(0xFF6366f1)
-                              : Colors.grey[300],
-                      shape: BoxShape.circle,
-                      boxShadow: isActive || isCompleted ? [
-                        BoxShadow(
-                          color: (isCompleted ? const Color(0xFF10b981) : const Color(0xFF6366f1))
-                              .withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ] : null,
-                    ),
-                    child: isCompleted
-                        ? const Icon(
-                            Icons.check_rounded,
-                            color: Colors.white,
-                            size: 14,
-                          )
-                        : Center(
-                            child: Text(
-                              '${index + 1}',
-                              style: TextStyle(
-                                color: isActive
-                                    ? Colors.white
-                                    : Colors.grey[600],
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+            child: GestureDetector(
+              onTap: () => _goToStep(index),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: isCompleted
+                            ? const Color(0xFF10b981)
+                            : isActive
+                            ? const Color(0xFF6366f1)
+                            : Colors.grey[300],
+                        shape: BoxShape.circle,
+                      ),
+                      child: isCompleted
+                          ? const Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 12,
+                            )
+                          : Center(
+                              child: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  color: isActive
+                                      ? Colors.white
+                                      : Colors.grey[600],
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
-                  ),
-              ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      stepLabels[index],
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isActive
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: isActive
+                            ? const Color(0xFF6366f1)
+                            : isCompleted
+                            ? const Color(0xFF10b981)
+                            : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (index < 3)
+                      Container(
+                        height: 2,
+                        margin: const EdgeInsets.only(top: 2),
+                        decoration: BoxDecoration(
+                          color: isCompleted
+                              ? const Color(0xFF10b981)
+                              : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           );
         }),
@@ -454,18 +308,18 @@ class _NewOrderPageState extends State<NewOrderPage>
 
   Widget _buildNavigationButtons(NewOrderState state) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
@@ -478,29 +332,26 @@ class _NewOrderPageState extends State<NewOrderPage>
                 child: OutlinedButton(
                   onPressed: _previousStep,
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    side: BorderSide(
-                      color: Colors.grey[300]!,
-                      width: 1.5,
-                    ),
+                    side: BorderSide(color: Colors.grey[300]!, width: 1),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.arrow_back_ios_new_rounded,
-                        size: 16,
+                        size: 14,
                         color: Colors.grey[600],
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Text(
                         'Previous',
                         style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
                           color: Colors.grey[700],
                         ),
                       ),
@@ -508,54 +359,55 @@ class _NewOrderPageState extends State<NewOrderPage>
                   ),
                 ),
               ),
-            if (_currentStep > 0) const SizedBox(width: 16),
+            if (_currentStep > 0) const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
                 onPressed: _currentStep < 3
                     ? _nextStep
                     : state.canCreateOrder
-                        ? () {
-                            context.read<NewOrderBloc>().add(
-                                  const NewOrderEvent
-                                      .validateAndCreateOrder(),
-                                );
-                          }
-                        : null,
+                    ? () {
+                        context.read<NewOrderBloc>().add(
+                          const NewOrderEvent.validateAndCreateOrder(),
+                        );
+                      }
+                    : null,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   backgroundColor: const Color(0xFF6366f1),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  shadowColor: const Color(0xFF6366f1).withValues(alpha: 0.3),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (state.isCreatingOrder && _currentStep == 3)
                       const SizedBox(
-                        width: 16,
-                        height: 16,
+                        width: 14,
+                        height: 14,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     else
                       Icon(
-                        _currentStep < 3 
+                        _currentStep < 3
                             ? Icons.arrow_forward_ios_rounded
-                            : Icons.check_circle_rounded,
-                        size: 16,
+                            : Icons.check_rounded,
+                        size: 14,
+                        color: Colors.white,
                       ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
                       _currentStep < 3 ? 'Next' : 'Create Order',
                       style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
                       ),
                     ),
                   ],
@@ -573,9 +425,7 @@ class _NewOrderPageState extends State<NewOrderPage>
       context: context,
       barrierDismissible: false,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         elevation: 0,
         backgroundColor: Colors.transparent,
         child: Container(
@@ -601,10 +451,7 @@ class _NewOrderPageState extends State<NewOrderPage>
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF10b981),
-                      Color(0xFF059669),
-                    ],
+                    colors: [Color(0xFF10b981), Color(0xFF059669)],
                   ),
                   shape: BoxShape.circle,
                   boxShadow: [
@@ -634,10 +481,7 @@ class _NewOrderPageState extends State<NewOrderPage>
               const SizedBox(height: 8),
               Text(
                 'Your order has been created and is ready for processing.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -689,9 +533,9 @@ class _NewOrderPageState extends State<NewOrderPage>
                     child: OutlinedButton(
                       onPressed: () {
                         Navigator.of(context).pop();
-                        context
-                            .read<NewOrderBloc>()
-                            .add(const NewOrderEvent.resetOrderState());
+                        context.read<NewOrderBloc>().add(
+                          const NewOrderEvent.resetOrderState(),
+                        );
                         setState(() {
                           _currentStep = 0;
                         });
@@ -707,10 +551,7 @@ class _NewOrderPageState extends State<NewOrderPage>
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        side: BorderSide(
-                          color: Colors.grey[300]!,
-                          width: 1.5,
-                        ),
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
                       ),
                       child: const Text(
                         'Create Another',

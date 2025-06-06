@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/product_models.dart';
 import '../services/product_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_details_dialog.dart';
+import '../widgets/custom_bottom_navigation.dart';
 
 class StockPage extends StatefulWidget {
   const StockPage({super.key});
@@ -188,24 +190,28 @@ class _StockPageState extends State<StockPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildHeader(),
-                  _buildContent(),
-                  const SizedBox(height: 100), // Space for bottom navigation
-                ],
+    return PageWithBottomNav(
+      currentPath: '/stock',
+      onNewOrderPressed: () => context.go('/create'),
+      child: Container(
+        color: Colors.white,
+        child: SafeArea(
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildHeader(),
+                    _buildContent(),
+                    const SizedBox(height: 20), // Reduced space since bottom nav is handled
+                  ],
+                ),
               ),
-            ),
-            if (_isLoading) const Center(
-              child: CircularProgressIndicator(),
-            ),
-          ],
+              if (_isLoading) const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ],
+          ),
         ),
       ),
     );

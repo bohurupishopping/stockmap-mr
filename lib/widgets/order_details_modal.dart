@@ -23,7 +23,7 @@ class OrderDetailsModal extends StatelessWidget {
     final theme = Theme.of(context);
     
     return DraggableScrollableSheet(
-      initialChildSize: 0.7,
+      initialChildSize: 0.95,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (context, scrollController) {

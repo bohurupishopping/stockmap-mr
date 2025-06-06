@@ -5,6 +5,7 @@ import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
 import '../models/user_profile.dart';
+import '../widgets/custom_bottom_navigation.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -43,10 +44,10 @@ class DashboardPage extends StatelessWidget {
       gradientColors: [Color(0xFFfb923c), Color(0xFFf97316)],
     ),
     NavItem(
-      title: 'Customers',
-      description: 'Manage customers',
+      title: 'Doctors',
+      description: 'Manage doctors',
       icon: Icons.people,
-      route: '/customers',
+      route: '/doctors',
       color: Color(0xFF34d399),
       gradientColors: [Color(0xFF34d399), Color(0xFF10b981)],
     ),
@@ -67,7 +68,11 @@ class DashboardPage extends StatelessWidget {
         if (state is AuthInitial || state is AuthLoading) {
           return const _LoadingWidget();
         } else if (state is AuthAuthenticated) {
-          return _DashboardContent(user: state.user, navItems: navItems);
+          return PageWithBottomNav(
+            currentPath: '/dashboard',
+            onNewOrderPressed: () => context.go('/create'),
+            child: _DashboardContent(user: state.user, navItems: navItems),
+          );
         } else if (state is AuthUnauthenticated) {
           return const SizedBox.shrink();
         } else if (state is AuthError) {
@@ -89,9 +94,9 @@ class _DashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
+    return Container(
+      color: Colors.white,
+      child: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
