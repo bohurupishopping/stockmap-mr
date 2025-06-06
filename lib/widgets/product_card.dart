@@ -16,7 +16,6 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Clean modern color palette - avoiding pinkish tones
     const primaryColor = Color(0xFF2563EB); // Blue
-    const accentColor = Color(0xFF059669); // Green
     const surfaceColor = Colors.white;
     Theme.of(context);
     
@@ -42,7 +41,7 @@ class ProductCard extends StatelessWidget {
               children: [
                 // Compact Header Section
                 Container(
-                  height: isCompact ? 85 : 100,
+                  height: isCompact ? 95 : 110,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -92,7 +91,7 @@ class ProductCard extends StatelessWidget {
                             
                             const SizedBox(width: 12),
                             
-                            // Product details - right side
+                            // Product details - left side
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,36 +150,47 @@ class ProductCard extends StatelessWidget {
                                 ],
                               ),
                             ),
+                            
+                            const SizedBox(width: 8),
+                            
+                            // Product info - right side
+                            SizedBox(
+                              width: isCompact ? 80 : 100,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Category
+                                  _buildCompactInfoItem(
+                                    Icons.category_rounded,
+                                    product.categoryName ?? 'N/A',
+                                    isCompact,
+                                  ),
+                                  
+                                  const SizedBox(height: 4),
+                                  
+                                  // Cost
+                                  _buildCompactInfoItem(
+                                    Icons.currency_rupee_rounded,
+                                    '₹${product.baseCostPerStrip.toStringAsFixed(2)}',
+                                    isCompact,
+                                  ),
+                                  
+                                  const SizedBox(height: 4),
+                                  
+                                  // Formulation
+                                  _buildCompactInfoItem(
+                                    Icons.medical_services_rounded,
+                                    product.formulationName ?? 'N/A',
+                                    isCompact,
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      // Compact Status Badge
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: product.isActive
-                                ? accentColor.withValues(alpha: 0.1)
-                                : Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            product.isActive ? 'Active' : 'Inactive',
-                            style: TextStyle(
-                              color: product.isActive
-                                  ? accentColor
-                                  : Colors.red.shade600,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
+
                     ],
                   ),
                 ),
@@ -191,11 +201,6 @@ class ProductCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Compact Key Info Grid
-                      _buildInfoGrid(context, isCompact),
-                      
-                      SizedBox(height: isCompact ? 10 : 12),
-                      
                       // Compact Stock Levels
                       _buildStockSection(context, isCompact),
                     ],
@@ -230,110 +235,45 @@ class ProductCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoGrid(BuildContext context, bool isCompact) {
-    
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildInfoItem(
-                Icons.business_rounded,
-                'Manufacturer',
-                product.manufacturer,
-                isCompact,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildInfoItem(
-                Icons.category_rounded,
-                'Category',
-                product.categoryName ?? 'N/A',
-                isCompact,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _buildInfoItem(
-                Icons.currency_rupee_rounded,
-                'Cost/Strip',
-                '₹${product.baseCostPerStrip.toStringAsFixed(2)}',
-                isCompact,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _buildInfoItem(
-                Icons.medical_services_rounded,
-                'Formulation',
-                product.formulationName ?? 'N/A',
-                isCompact,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoItem(
+  Widget _buildCompactInfoItem(
     IconData icon,
-    String label,
     String value,
     bool isCompact,
   ) {
     const primaryColor = Color(0xFF2563EB);
     
     return Container(
-      padding: EdgeInsets.all(isCompact ? 8 : 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 6 : 8,
+        vertical: isCompact ? 3 : 4,
+      ),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: Colors.grey.shade200,
-          width: 1,
+          width: 0.5,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                size: isCompact ? 12 : 14,
-                color: primaryColor,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: isCompact ? 9 : 10,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+          Icon(
+            icon,
+            size: isCompact ? 10 : 12,
+            color: primaryColor,
           ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isCompact ? 11 : 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade800,
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: isCompact ? 8 : 9,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade800,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -387,7 +327,7 @@ class ProductCard extends StatelessWidget {
                   Text(
                     'Available: ${product.formattedMrStock}',
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: Colors.green.shade700,
                     ),
@@ -420,7 +360,7 @@ class ProductCard extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: isCompact ? 9 : 10,
+            fontSize: isCompact ? 12 : 14,
             fontWeight: FontWeight.w500,
             color: Colors.grey.shade600,
           ),
@@ -429,7 +369,7 @@ class ProductCard extends StatelessWidget {
         Text(
           formattedValue,
           style: TextStyle(
-            fontSize: isCompact ? 10 : 11,
+            fontSize: isCompact ? 14 : 16,
             fontWeight: FontWeight.w700,
             color: Colors.grey.shade800,
           ),
