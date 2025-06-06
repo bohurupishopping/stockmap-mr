@@ -4,7 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
 import 'bloc/auth/auth_bloc.dart';
 import 'bloc/auth/auth_event.dart';
+import 'bloc/new_order/new_order_bloc.dart';
 import 'repositories/auth_repository.dart';
+import 'services/order_service.dart';
 import 'router/app_router.dart';
 
 void main() async {
@@ -29,6 +31,9 @@ class MainApp extends StatelessWidget {
         RepositoryProvider<AuthRepository>(
           create: (context) => AuthRepository(),
         ),
+        RepositoryProvider<OrderService>(
+          create: (context) => OrderService(),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -36,6 +41,9 @@ class MainApp extends StatelessWidget {
             create: (context) => AuthBloc(
               authRepository: context.read<AuthRepository>(),
             )..add(const AuthEvent.checkAuthStatus()),
+          ),
+          BlocProvider<NewOrderBloc>(
+            create: (context) => NewOrderBloc(),
           ),
         ],
         child: Builder(

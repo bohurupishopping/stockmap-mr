@@ -19,6 +19,22 @@ class DashboardPage extends StatelessWidget {
       gradientColors: [Color(0xFF818cf8), Color(0xFF6366f1)],
     ),
     NavItem(
+      title: 'Orders',
+      description: 'View my orders',
+      icon: Icons.receipt_long,
+      route: '/orders',
+      color: Color(0xFF2E7D32),
+      gradientColors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+    ),
+        NavItem(
+      title: 'Create Order',
+      description: 'Place a order',
+      icon: Icons.receipt_long,
+      route: '/create',
+      color: Color(0xFF2E7D32),
+      gradientColors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+    ),
+    NavItem(
       title: 'Reports',
       description: 'View analytics',
       icon: Icons.analytics,
@@ -242,7 +258,8 @@ class _DashboardContent extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: () {
-            if (item.route == '/stock' || item.route == '/report') {
+            if (item.route == '/stock' || item.route == '/report'
+            || item.route == '/create' || item.route == '/orders') {
               context.go(item.route);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
