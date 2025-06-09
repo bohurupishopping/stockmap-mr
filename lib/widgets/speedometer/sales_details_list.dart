@@ -20,51 +20,56 @@ class SalesDetailsList extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: Row(
               children: [
-                Icon(
-                  Icons.receipt_long,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 20,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.receipt_outlined,
+                    color: Colors.blue.shade600,
+                    size: 18,
+                  ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Text(
                   'Recent Sales',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade800,
                   ),
                 ),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '${sales.length} orders',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.bold,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -77,15 +82,17 @@ class SalesDetailsList extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: sales.length,
-            separatorBuilder: (context, index) => Divider(
+            separatorBuilder: (context, index) => Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
               height: 1,
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.shade100,
             ),
             itemBuilder: (context, index) {
               final sale = sales[index];
               return _buildSaleItem(context, sale);
             },
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -97,36 +104,49 @@ class SalesDetailsList extends StatelessWidget {
     
     return InkWell(
       onTap: () => _showSaleDetails(context, sale),
+      borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+          horizontal: 20,
+          vertical: 16,
         ),
         child: Row(
           children: [
-            // Date
+            // Date Container
             Container(
-              width: 60,
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey.shade200,
+                  width: 1,
+                ),
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     DateFormat('MMM').format(sale.orderDate),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      color: Colors.grey.shade600,
                       fontWeight: FontWeight.w500,
+                      fontSize: 10,
                     ),
                   ),
                   Text(
                     DateFormat('dd').format(sale.orderDate),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey.shade800,
+                      fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             
             // Customer and Amount
             Expanded(
@@ -135,18 +155,19 @@ class SalesDetailsList extends StatelessWidget {
                 children: [
                   Text(
                     sale.customerName,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade800,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     '₹${_formatAmount(sale.totalAmount)}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.indigo.shade600,
                     ),
                   ),
                 ],
@@ -156,16 +177,12 @@ class SalesDetailsList extends StatelessWidget {
             // Payment Status
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
+                horizontal: 10,
+                vertical: 6,
               ),
               decoration: BoxDecoration(
                 color: paymentColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: paymentColor.withOpacity(0.3),
-                  width: 1,
-                ),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -173,24 +190,25 @@ class SalesDetailsList extends StatelessWidget {
                   Icon(
                     paymentIcon,
                     color: paymentColor,
-                    size: 14,
+                    size: 12,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   Text(
                     _getPaymentStatusText(sale.paymentStatus),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: paymentColor,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Icon(
-              Icons.chevron_right,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-              size: 20,
+              Icons.arrow_forward_ios,
+              color: Colors.grey.shade400,
+              size: 14,
             ),
           ],
         ),
@@ -201,38 +219,42 @@ class SalesDetailsList extends StatelessWidget {
   Widget _buildEmptyState(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 48,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              Icons.receipt_outlined,
+              size: 40,
+              color: Colors.grey.shade400,
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             'No Sales Yet',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Start making sales to see them here',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Colors.grey.shade500,
             ),
             textAlign: TextAlign.center,
           ),
@@ -253,11 +275,11 @@ class SalesDetailsList extends StatelessWidget {
   Color _getPaymentStatusColor(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.paid:
-        return Colors.green;
+        return Colors.green.shade600;
       case PaymentStatus.partial:
-        return Colors.orange;
+        return Colors.amber.shade600;
       case PaymentStatus.pending:
-        return Colors.red;
+        return Colors.red.shade600;
     }
   }
 
@@ -302,9 +324,13 @@ class _SaleDetailsModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
       ),
       child: DraggableScrollableSheet(
         initialChildSize: 0.6,
@@ -317,76 +343,135 @@ class _SaleDetailsModal extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Drag Handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
                 // Header
                 Row(
                   children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.receipt_outlined,
+                        color: Colors.blue.shade600,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Sale Details',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade800,
                         ),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: Icon(
+                        Icons.close,
+                        color: Colors.grey.shade600,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
                 
-                // Sale Information
-                _buildDetailRow(context, 'Customer', sale.customerName),
-                _buildDetailRow(context, 'Date', DateFormat('MMM dd, yyyy').format(sale.orderDate)),
-                _buildDetailRow(context, 'Amount', '₹${sale.totalAmount.toStringAsFixed(2)}'),
-                _buildDetailRow(
-                  context,
-                  'Payment Status',
-                  _getPaymentStatusText(sale.paymentStatus),
-                  valueColor: _getPaymentStatusColor(sale.paymentStatus),
+                // Sale Information Card
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.grey.shade200,
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildDetailRow(context, 'Customer', sale.customerName),
+                      _buildDetailRow(context, 'Date', DateFormat('MMM dd, yyyy').format(sale.orderDate)),
+                      _buildDetailRow(context, 'Amount', '₹${sale.totalAmount.toStringAsFixed(2)}'),
+                      _buildDetailRow(
+                        context,
+                        'Payment Status',
+                        _getPaymentStatusText(sale.paymentStatus),
+                        valueColor: _getPaymentStatusColor(sale.paymentStatus),
+                      ),
+                      if (sale.notes != null && sale.notes!.isNotEmpty)
+                        _buildDetailRow(context, 'Notes', sale.notes!),
+                    ],
+                  ),
                 ),
-                if (sale.notes != null && sale.notes!.isNotEmpty)
-                  _buildDetailRow(context, 'Notes', sale.notes!),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 
                 // Action buttons based on payment status
                 if (sale.paymentStatus != PaymentStatus.paid) ...[
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Follow-up Actions',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Colors.orange.withOpacity(0.3),
+                        color: Colors.amber.shade200,
                         width: 1,
                       ),
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Colors.orange,
-                          size: 20,
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.info_outline,
+                            color: Colors.amber.shade700,
+                            size: 16,
+                          ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         Expanded(
-                          child: Text(
-                            'Follow up with ${sale.customerName} to collect payment and improve your collection rate.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.orange.shade700,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Follow-up Required',
+                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.amber.shade800,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Contact ${sale.customerName} to collect payment and improve your collection rate.',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.amber.shade700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -408,26 +493,27 @@ class _SaleDetailsModal extends StatelessWidget {
     Color? valueColor,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 100,
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Colors.grey.shade600,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? Colors.grey.shade800,
               ),
             ),
           ),
@@ -439,11 +525,11 @@ class _SaleDetailsModal extends StatelessWidget {
   Color _getPaymentStatusColor(PaymentStatus status) {
     switch (status) {
       case PaymentStatus.paid:
-        return Colors.green;
+        return Colors.green.shade600;
       case PaymentStatus.partial:
-        return Colors.orange;
+        return Colors.amber.shade600;
       case PaymentStatus.pending:
-        return Colors.red;
+        return Colors.red.shade600;
     }
   }
 

@@ -26,25 +26,25 @@ class MetricCards extends StatelessWidget {
                 context,
                 'Sales Target',
                 data.target?.targetSalesAmount ?? 0.0,
-                Icons.track_changes,
-                Theme.of(context).colorScheme.primary,
+                Icons.flag_outlined,
+                const Color(0xFF6366F1), // Indigo
                 isAmount: true,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildMetricCard(
                 context,
                 'Sales Achieved',
                 data.totalSalesAmount,
-                Icons.trending_up,
-                Colors.green,
+                Icons.trending_up_rounded,
+                const Color(0xFF10B981), // Emerald
                 isAmount: true,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         
         // Second row: Collection Rate and Remaining
         Row(
@@ -52,7 +52,7 @@ class MetricCards extends StatelessWidget {
             Expanded(
               child: _buildCollectionCard(context),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildRemainingCard(context),
             ),
@@ -71,67 +71,76 @@ class MetricCards extends StatelessWidget {
     bool isAmount = false,
     String? subtitle,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark 
+            ? const Color(0xFF1F2937) 
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          // ignore: deprecated_member_use
-          color: color.withOpacity(0.2),
+          color: isDark 
+              ? const Color(0xFF374151) 
+              : const Color(0xFFE2E8F0),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   icon,
                   color: color,
-                  size: 20,
+                  size: 16,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  style: TextStyle(
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
+                    color: isDark 
+                        ? const Color(0xFF9CA3AF) 
+                        : const Color(0xFF64748B),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             isAmount ? '₹${_formatAmount(value)}' : value.toStringAsFixed(1),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
               color: color,
+              letterSpacing: -0.5,
             ),
           ),
           if (subtitle != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               subtitle,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              style: TextStyle(
+                fontSize: 10,
+                color: isDark 
+                    ? const Color(0xFF6B7280) 
+                    : const Color(0xFF94A3B8),
               ),
             ),
           ],
@@ -144,85 +153,103 @@ class MetricCards extends StatelessWidget {
     final collectionRate = cubit.getCollectionRate(data);
     final targetRate = data.target?.targetCollectionPercentage ?? 100.0;
     final isOnTarget = collectionRate >= targetRate;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final cardColor = isOnTarget 
+        ? const Color(0xFF10B981) // Emerald
+        : const Color(0xFFF59E0B); // Amber
     
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark 
+            ? const Color(0xFF1F2937) 
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: (isOnTarget ? Colors.green : Colors.orange).withOpacity(0.2),
+          color: isDark 
+              ? const Color(0xFF374151) 
+              : const Color(0xFFE2E8F0),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: (isOnTarget ? Colors.green : Colors.orange).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: cardColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  Icons.account_balance_wallet,
-                  color: isOnTarget ? Colors.green : Colors.orange,
-                  size: 20,
+                  Icons.account_balance_wallet_outlined,
+                  color: cardColor,
+                  size: 16,
                 ),
               ),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Collection Rate',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey,
+                    color: isDark 
+                        ? const Color(0xFF9CA3AF) 
+                        : const Color(0xFF64748B),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             children: [
               Text(
                 '${collectionRate.toStringAsFixed(1)}%',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isOnTarget ? Colors.green : Colors.orange,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: cardColor,
+                  letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               Icon(
-                isOnTarget ? Icons.trending_up : Icons.trending_down,
-                color: isOnTarget ? Colors.green : Colors.orange,
-                size: 20,
+                isOnTarget 
+                    ? Icons.trending_up_rounded 
+                    : Icons.trending_down_rounded,
+                color: cardColor,
+                size: 16,
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             'Target: ${targetRate.toStringAsFixed(0)}%',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            style: TextStyle(
+              fontSize: 10,
+              color: isDark 
+                  ? const Color(0xFF6B7280) 
+                  : const Color(0xFF94A3B8),
             ),
           ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: (collectionRate / 100).clamp(0.0, 1.0),
-            backgroundColor: Colors.grey.withOpacity(0.2),
-            valueColor: AlwaysStoppedAnimation(
-              isOnTarget ? Colors.green : Colors.orange,
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: (collectionRate / 100).clamp(0.0, 1.0),
+              backgroundColor: isDark 
+                  ? const Color(0xFF374151) 
+                  : const Color(0xFFE2E8F0),
+              valueColor: AlwaysStoppedAnimation(cardColor),
+              minHeight: 4,
             ),
           ),
         ],
@@ -235,68 +262,83 @@ class MetricCards extends StatelessWidget {
     final achieved = data.totalSalesAmount;
     final remaining = (target - achieved).clamp(0.0, double.infinity);
     final isCompleted = achieved >= target;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final cardColor = isCompleted 
+        ? const Color(0xFF10B981) // Emerald
+        : const Color(0xFF3B82F6); // Blue
     
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark 
+            ? const Color(0xFF1F2937) 
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: (isCompleted ? Colors.green : Colors.blue).withOpacity(0.2),
+          color: isDark 
+              ? const Color(0xFF374151) 
+              : const Color(0xFFE2E8F0),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: (isCompleted ? Colors.green : Colors.blue).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: cardColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  isCompleted ? Icons.check_circle : Icons.flag,
-                  color: isCompleted ? Colors.green : Colors.blue,
-                  size: 20,
+                  isCompleted 
+                      ? Icons.check_circle_outline_rounded 
+                      : Icons.flag_outlined,
+                  color: cardColor,
+                  size: 16,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   isCompleted ? 'Target Achieved!' : 'Remaining',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  style: TextStyle(
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
+                    color: isDark 
+                        ? const Color(0xFF9CA3AF) 
+                        : const Color(0xFF64748B),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
-            isCompleted ? '🎉 Well Done!' : '₹${_formatAmount(remaining)}',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: isCompleted ? Colors.green : Colors.blue,
+            isCompleted ? '🎉 Excellent!' : '₹${_formatAmount(remaining)}',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: cardColor,
+              letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             isCompleted 
-                ? 'You exceeded your target by ₹${_formatAmount(achieved - target)}'
-                : 'to reach your target',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                ? 'Exceeded by ₹${_formatAmount(achieved - target)}'
+                : 'to reach target',
+            style: TextStyle(
+              fontSize: 10,
+              color: isDark 
+                  ? const Color(0xFF6B7280) 
+                  : const Color(0xFF94A3B8),
             ),
           ),
         ],
