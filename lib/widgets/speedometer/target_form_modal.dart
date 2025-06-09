@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -34,13 +36,11 @@ class _TargetFormModalState extends State<TargetFormModal> {
 
   // Modern color scheme
   static const Color primaryBlue = Color(0xFF2563EB);
-  static const Color lightBlue = Color(0xFFEFF6FF);
   static const Color darkGray = Color(0xFF1F2937);
   static const Color mediumGray = Color(0xFF6B7280);
   static const Color lightGray = Color(0xFFF9FAFB);
   static const Color borderColor = Color(0xFFE5E7EB);
   static const Color successGreen = Color(0xFF059669);
-  static const Color warningOrange = Color(0xFFF59E0B);
 
   @override
   void initState() {
