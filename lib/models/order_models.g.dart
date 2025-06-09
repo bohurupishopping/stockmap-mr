@@ -9,14 +9,17 @@ part of 'order_models.dart';
 _MrSalesOrder _$MrSalesOrderFromJson(Map<String, dynamic> json) =>
     _MrSalesOrder(
       id: json['id'] as String,
-      mrUserId: json['mrUserId'] as String,
-      customerName: json['customerName'] as String,
-      orderDate: DateTime.parse(json['orderDate'] as String),
-      totalAmount: (json['totalAmount'] as num).toDouble(),
-      paymentStatus: $enumDecode(_$PaymentStatusEnumMap, json['paymentStatus']),
+      mrUserId: json['mr_user_id'] as String,
+      customerName: json['customer_name'] as String,
+      orderDate: DateTime.parse(json['order_date'] as String),
+      totalAmount: (json['total_amount'] as num).toDouble(),
+      paymentStatus: $enumDecode(
+        _$PaymentStatusEnumMap,
+        json['payment_status'],
+      ),
       notes: json['notes'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
       items:
           (json['items'] as List<dynamic>?)
               ?.map((e) => MrSalesOrderItem.fromJson(e as Map<String, dynamic>))
@@ -27,14 +30,14 @@ _MrSalesOrder _$MrSalesOrderFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$MrSalesOrderToJson(_MrSalesOrder instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'mrUserId': instance.mrUserId,
-      'customerName': instance.customerName,
-      'orderDate': instance.orderDate.toIso8601String(),
-      'totalAmount': instance.totalAmount,
-      'paymentStatus': _$PaymentStatusEnumMap[instance.paymentStatus]!,
+      'mr_user_id': instance.mrUserId,
+      'customer_name': instance.customerName,
+      'order_date': instance.orderDate.toIso8601String(),
+      'total_amount': instance.totalAmount,
+      'payment_status': _$PaymentStatusEnumMap[instance.paymentStatus]!,
       'notes': instance.notes,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'updatedAt': instance.updatedAt.toIso8601String(),
+      'created_at': instance.createdAt.toIso8601String(),
+      'updated_at': instance.updatedAt.toIso8601String(),
       'items': instance.items,
     };
 
@@ -47,37 +50,37 @@ const _$PaymentStatusEnumMap = {
 _MrSalesOrderItem _$MrSalesOrderItemFromJson(Map<String, dynamic> json) =>
     _MrSalesOrderItem(
       id: json['id'] as String,
-      orderId: json['orderId'] as String,
-      productId: json['productId'] as String,
-      batchId: json['batchId'] as String,
-      quantityStripsSold: (json['quantityStripsSold'] as num).toInt(),
-      pricePerStrip: (json['pricePerStrip'] as num).toDouble(),
-      lineItemTotal: (json['lineItemTotal'] as num).toDouble(),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      productName: json['productName'] as String?,
-      batchNumber: json['batchNumber'] as String?,
-      expiryDate: json['expiryDate'] == null
+      orderId: json['order_id'] as String,
+      productId: json['product_id'] as String,
+      batchId: json['batch_id'] as String,
+      quantityStripsSold: (json['quantity_strips_sold'] as num).toInt(),
+      pricePerStrip: (json['price_per_strip'] as num).toDouble(),
+      lineItemTotal: (json['line_item_total'] as num).toDouble(),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      productName: json['product_name'] as String?,
+      batchNumber: json['batch_number'] as String?,
+      expiryDate: json['expiry_date'] == null
           ? null
-          : DateTime.parse(json['expiryDate'] as String),
-      stripsPerBox: (json['stripsPerBox'] as num?)?.toInt(),
-      boxesPerCarton: (json['boxesPerCarton'] as num?)?.toInt(),
+          : DateTime.parse(json['expiry_date'] as String),
+      stripsPerBox: (json['strips_per_box'] as num?)?.toInt(),
+      boxesPerCarton: (json['boxes_per_carton'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$MrSalesOrderItemToJson(_MrSalesOrderItem instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'orderId': instance.orderId,
-      'productId': instance.productId,
-      'batchId': instance.batchId,
-      'quantityStripsSold': instance.quantityStripsSold,
-      'pricePerStrip': instance.pricePerStrip,
-      'lineItemTotal': instance.lineItemTotal,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'productName': instance.productName,
-      'batchNumber': instance.batchNumber,
-      'expiryDate': instance.expiryDate?.toIso8601String(),
-      'stripsPerBox': instance.stripsPerBox,
-      'boxesPerCarton': instance.boxesPerCarton,
+      'order_id': instance.orderId,
+      'product_id': instance.productId,
+      'batch_id': instance.batchId,
+      'quantity_strips_sold': instance.quantityStripsSold,
+      'price_per_strip': instance.pricePerStrip,
+      'line_item_total': instance.lineItemTotal,
+      'created_at': instance.createdAt.toIso8601String(),
+      'product_name': instance.productName,
+      'batch_number': instance.batchNumber,
+      'expiry_date': instance.expiryDate?.toIso8601String(),
+      'strips_per_box': instance.stripsPerBox,
+      'boxes_per_carton': instance.boxesPerCarton,
     };
 
 _CartItem _$CartItemFromJson(Map<String, dynamic> json) => _CartItem(

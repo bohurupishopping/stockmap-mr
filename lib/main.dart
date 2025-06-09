@@ -7,6 +7,8 @@ import 'bloc/auth/auth_event.dart';
 import 'bloc/new_order/new_order_bloc.dart';
 import 'repositories/auth_repository.dart';
 import 'services/order_service.dart';
+import 'services/target_service.dart';
+import 'bloc/speedometer/speedometer_cubit.dart';
 import 'router/app_router.dart';
 
 void main() async {
@@ -34,6 +36,9 @@ class MainApp extends StatelessWidget {
         RepositoryProvider<OrderService>(
           create: (context) => OrderService(),
         ),
+        RepositoryProvider<TargetService>(
+          create: (context) => TargetService(),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -44,6 +49,9 @@ class MainApp extends StatelessWidget {
           ),
           BlocProvider<NewOrderBloc>(
             create: (context) => NewOrderBloc(),
+          ),
+          BlocProvider<SpeedometerCubit>(
+            create: (context) => SpeedometerCubit(),
           ),
         ],
         child: Builder(

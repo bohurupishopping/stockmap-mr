@@ -52,9 +52,9 @@ class CustomBottomNavigation extends StatelessWidget {
           path: '/stock',
         ),
         const BottomNavigationItem(
-          name: 'Reports',
-          icon: Icons.analytics,
-          path: '/report',
+          name: 'Goals',
+          icon: Icons.speed,
+          path: '/speedometer',
         ),
       ];
 

@@ -9,14 +9,14 @@ abstract class MrSalesOrder with _$MrSalesOrder {
   
   const factory MrSalesOrder({
     required String id,
-    required String mrUserId,
-    required String customerName,
-    required DateTime orderDate,
-    required double totalAmount,
-    required PaymentStatus paymentStatus,
+    @JsonKey(name: 'mr_user_id') required String mrUserId,
+    @JsonKey(name: 'customer_name') required String customerName,
+    @JsonKey(name: 'order_date') required DateTime orderDate,
+    @JsonKey(name: 'total_amount') required double totalAmount,
+    @JsonKey(name: 'payment_status') required PaymentStatus paymentStatus,
     String? notes,
-    required DateTime createdAt,
-    required DateTime updatedAt,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'updated_at') required DateTime updatedAt,
     @Default([]) List<MrSalesOrderItem> items,
   }) = _MrSalesOrder;
 
@@ -30,18 +30,18 @@ abstract class MrSalesOrderItem with _$MrSalesOrderItem {
 
   const factory MrSalesOrderItem({
     required String id,
-    required String orderId,
-    required String productId,
-    required String batchId,
-    required int quantityStripsSold,
-    required double pricePerStrip,
-    required double lineItemTotal,
-    required DateTime createdAt,
-    String? productName,
-    String? batchNumber,
-    DateTime? expiryDate,
-    int? stripsPerBox,
-    int? boxesPerCarton,
+    @JsonKey(name: 'order_id') required String orderId,
+    @JsonKey(name: 'product_id') required String productId,
+    @JsonKey(name: 'batch_id') required String batchId,
+    @JsonKey(name: 'quantity_strips_sold') required int quantityStripsSold,
+    @JsonKey(name: 'price_per_strip') required double pricePerStrip,
+    @JsonKey(name: 'line_item_total') required double lineItemTotal,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'product_name') String? productName,
+    @JsonKey(name: 'batch_number') String? batchNumber,
+    @JsonKey(name: 'expiry_date') DateTime? expiryDate,
+    @JsonKey(name: 'strips_per_box') int? stripsPerBox,
+    @JsonKey(name: 'boxes_per_carton') int? boxesPerCarton,
   }) = _MrSalesOrderItem;
 
   factory MrSalesOrderItem.fromJson(Map<String, dynamic> json) =>

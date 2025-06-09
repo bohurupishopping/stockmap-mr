@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MrSalesOrder {
 
- String get id; String get mrUserId; String get customerName; DateTime get orderDate; double get totalAmount; PaymentStatus get paymentStatus; String? get notes; DateTime get createdAt; DateTime get updatedAt; List<MrSalesOrderItem> get items;
+ String get id;@JsonKey(name: 'mr_user_id') String get mrUserId;@JsonKey(name: 'customer_name') String get customerName;@JsonKey(name: 'order_date') DateTime get orderDate;@JsonKey(name: 'total_amount') double get totalAmount;@JsonKey(name: 'payment_status') PaymentStatus get paymentStatus; String? get notes;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'updated_at') DateTime get updatedAt; List<MrSalesOrderItem> get items;
 /// Create a copy of MrSalesOrder
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -49,7 +49,7 @@ abstract mixin class $MrSalesOrderCopyWith<$Res>  {
   factory $MrSalesOrderCopyWith(MrSalesOrder value, $Res Function(MrSalesOrder) _then) = _$MrSalesOrderCopyWithImpl;
 @useResult
 $Res call({
- String id, String mrUserId, String customerName, DateTime orderDate, double totalAmount, PaymentStatus paymentStatus, String? notes, DateTime createdAt, DateTime updatedAt, List<MrSalesOrderItem> items
+ String id,@JsonKey(name: 'mr_user_id') String mrUserId,@JsonKey(name: 'customer_name') String customerName,@JsonKey(name: 'order_date') DateTime orderDate,@JsonKey(name: 'total_amount') double totalAmount,@JsonKey(name: 'payment_status') PaymentStatus paymentStatus, String? notes,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'updated_at') DateTime updatedAt, List<MrSalesOrderItem> items
 });
 
 
@@ -89,18 +89,18 @@ as List<MrSalesOrderItem>,
 @JsonSerializable()
 
 class _MrSalesOrder extends MrSalesOrder {
-  const _MrSalesOrder({required this.id, required this.mrUserId, required this.customerName, required this.orderDate, required this.totalAmount, required this.paymentStatus, this.notes, required this.createdAt, required this.updatedAt, final  List<MrSalesOrderItem> items = const []}): _items = items,super._();
+  const _MrSalesOrder({required this.id, @JsonKey(name: 'mr_user_id') required this.mrUserId, @JsonKey(name: 'customer_name') required this.customerName, @JsonKey(name: 'order_date') required this.orderDate, @JsonKey(name: 'total_amount') required this.totalAmount, @JsonKey(name: 'payment_status') required this.paymentStatus, this.notes, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'updated_at') required this.updatedAt, final  List<MrSalesOrderItem> items = const []}): _items = items,super._();
   factory _MrSalesOrder.fromJson(Map<String, dynamic> json) => _$MrSalesOrderFromJson(json);
 
 @override final  String id;
-@override final  String mrUserId;
-@override final  String customerName;
-@override final  DateTime orderDate;
-@override final  double totalAmount;
-@override final  PaymentStatus paymentStatus;
+@override@JsonKey(name: 'mr_user_id') final  String mrUserId;
+@override@JsonKey(name: 'customer_name') final  String customerName;
+@override@JsonKey(name: 'order_date') final  DateTime orderDate;
+@override@JsonKey(name: 'total_amount') final  double totalAmount;
+@override@JsonKey(name: 'payment_status') final  PaymentStatus paymentStatus;
 @override final  String? notes;
-@override final  DateTime createdAt;
-@override final  DateTime updatedAt;
+@override@JsonKey(name: 'created_at') final  DateTime createdAt;
+@override@JsonKey(name: 'updated_at') final  DateTime updatedAt;
  final  List<MrSalesOrderItem> _items;
 @override@JsonKey() List<MrSalesOrderItem> get items {
   if (_items is EqualUnmodifiableListView) return _items;
@@ -142,7 +142,7 @@ abstract mixin class _$MrSalesOrderCopyWith<$Res> implements $MrSalesOrderCopyWi
   factory _$MrSalesOrderCopyWith(_MrSalesOrder value, $Res Function(_MrSalesOrder) _then) = __$MrSalesOrderCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String mrUserId, String customerName, DateTime orderDate, double totalAmount, PaymentStatus paymentStatus, String? notes, DateTime createdAt, DateTime updatedAt, List<MrSalesOrderItem> items
+ String id,@JsonKey(name: 'mr_user_id') String mrUserId,@JsonKey(name: 'customer_name') String customerName,@JsonKey(name: 'order_date') DateTime orderDate,@JsonKey(name: 'total_amount') double totalAmount,@JsonKey(name: 'payment_status') PaymentStatus paymentStatus, String? notes,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'updated_at') DateTime updatedAt, List<MrSalesOrderItem> items
 });
 
 
@@ -182,7 +182,7 @@ as List<MrSalesOrderItem>,
 /// @nodoc
 mixin _$MrSalesOrderItem {
 
- String get id; String get orderId; String get productId; String get batchId; int get quantityStripsSold; double get pricePerStrip; double get lineItemTotal; DateTime get createdAt; String? get productName; String? get batchNumber; DateTime? get expiryDate; int? get stripsPerBox; int? get boxesPerCarton;
+ String get id;@JsonKey(name: 'order_id') String get orderId;@JsonKey(name: 'product_id') String get productId;@JsonKey(name: 'batch_id') String get batchId;@JsonKey(name: 'quantity_strips_sold') int get quantityStripsSold;@JsonKey(name: 'price_per_strip') double get pricePerStrip;@JsonKey(name: 'line_item_total') double get lineItemTotal;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'product_name') String? get productName;@JsonKey(name: 'batch_number') String? get batchNumber;@JsonKey(name: 'expiry_date') DateTime? get expiryDate;@JsonKey(name: 'strips_per_box') int? get stripsPerBox;@JsonKey(name: 'boxes_per_carton') int? get boxesPerCarton;
 /// Create a copy of MrSalesOrderItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -215,7 +215,7 @@ abstract mixin class $MrSalesOrderItemCopyWith<$Res>  {
   factory $MrSalesOrderItemCopyWith(MrSalesOrderItem value, $Res Function(MrSalesOrderItem) _then) = _$MrSalesOrderItemCopyWithImpl;
 @useResult
 $Res call({
- String id, String orderId, String productId, String batchId, int quantityStripsSold, double pricePerStrip, double lineItemTotal, DateTime createdAt, String? productName, String? batchNumber, DateTime? expiryDate, int? stripsPerBox, int? boxesPerCarton
+ String id,@JsonKey(name: 'order_id') String orderId,@JsonKey(name: 'product_id') String productId,@JsonKey(name: 'batch_id') String batchId,@JsonKey(name: 'quantity_strips_sold') int quantityStripsSold,@JsonKey(name: 'price_per_strip') double pricePerStrip,@JsonKey(name: 'line_item_total') double lineItemTotal,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'product_name') String? productName,@JsonKey(name: 'batch_number') String? batchNumber,@JsonKey(name: 'expiry_date') DateTime? expiryDate,@JsonKey(name: 'strips_per_box') int? stripsPerBox,@JsonKey(name: 'boxes_per_carton') int? boxesPerCarton
 });
 
 
@@ -258,22 +258,22 @@ as int?,
 @JsonSerializable()
 
 class _MrSalesOrderItem extends MrSalesOrderItem {
-  const _MrSalesOrderItem({required this.id, required this.orderId, required this.productId, required this.batchId, required this.quantityStripsSold, required this.pricePerStrip, required this.lineItemTotal, required this.createdAt, this.productName, this.batchNumber, this.expiryDate, this.stripsPerBox, this.boxesPerCarton}): super._();
+  const _MrSalesOrderItem({required this.id, @JsonKey(name: 'order_id') required this.orderId, @JsonKey(name: 'product_id') required this.productId, @JsonKey(name: 'batch_id') required this.batchId, @JsonKey(name: 'quantity_strips_sold') required this.quantityStripsSold, @JsonKey(name: 'price_per_strip') required this.pricePerStrip, @JsonKey(name: 'line_item_total') required this.lineItemTotal, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'product_name') this.productName, @JsonKey(name: 'batch_number') this.batchNumber, @JsonKey(name: 'expiry_date') this.expiryDate, @JsonKey(name: 'strips_per_box') this.stripsPerBox, @JsonKey(name: 'boxes_per_carton') this.boxesPerCarton}): super._();
   factory _MrSalesOrderItem.fromJson(Map<String, dynamic> json) => _$MrSalesOrderItemFromJson(json);
 
 @override final  String id;
-@override final  String orderId;
-@override final  String productId;
-@override final  String batchId;
-@override final  int quantityStripsSold;
-@override final  double pricePerStrip;
-@override final  double lineItemTotal;
-@override final  DateTime createdAt;
-@override final  String? productName;
-@override final  String? batchNumber;
-@override final  DateTime? expiryDate;
-@override final  int? stripsPerBox;
-@override final  int? boxesPerCarton;
+@override@JsonKey(name: 'order_id') final  String orderId;
+@override@JsonKey(name: 'product_id') final  String productId;
+@override@JsonKey(name: 'batch_id') final  String batchId;
+@override@JsonKey(name: 'quantity_strips_sold') final  int quantityStripsSold;
+@override@JsonKey(name: 'price_per_strip') final  double pricePerStrip;
+@override@JsonKey(name: 'line_item_total') final  double lineItemTotal;
+@override@JsonKey(name: 'created_at') final  DateTime createdAt;
+@override@JsonKey(name: 'product_name') final  String? productName;
+@override@JsonKey(name: 'batch_number') final  String? batchNumber;
+@override@JsonKey(name: 'expiry_date') final  DateTime? expiryDate;
+@override@JsonKey(name: 'strips_per_box') final  int? stripsPerBox;
+@override@JsonKey(name: 'boxes_per_carton') final  int? boxesPerCarton;
 
 /// Create a copy of MrSalesOrderItem
 /// with the given fields replaced by the non-null parameter values.
@@ -308,7 +308,7 @@ abstract mixin class _$MrSalesOrderItemCopyWith<$Res> implements $MrSalesOrderIt
   factory _$MrSalesOrderItemCopyWith(_MrSalesOrderItem value, $Res Function(_MrSalesOrderItem) _then) = __$MrSalesOrderItemCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String orderId, String productId, String batchId, int quantityStripsSold, double pricePerStrip, double lineItemTotal, DateTime createdAt, String? productName, String? batchNumber, DateTime? expiryDate, int? stripsPerBox, int? boxesPerCarton
+ String id,@JsonKey(name: 'order_id') String orderId,@JsonKey(name: 'product_id') String productId,@JsonKey(name: 'batch_id') String batchId,@JsonKey(name: 'quantity_strips_sold') int quantityStripsSold,@JsonKey(name: 'price_per_strip') double pricePerStrip,@JsonKey(name: 'line_item_total') double lineItemTotal,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'product_name') String? productName,@JsonKey(name: 'batch_number') String? batchNumber,@JsonKey(name: 'expiry_date') DateTime? expiryDate,@JsonKey(name: 'strips_per_box') int? stripsPerBox,@JsonKey(name: 'boxes_per_carton') int? boxesPerCarton
 });
 
 
