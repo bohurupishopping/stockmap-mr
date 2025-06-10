@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/product_models.dart';
 import '../services/product_service.dart';
-import '../widgets/product_card.dart';
-import '../widgets/product_details_dialog.dart';
+import '../widgets/product/product_card.dart';
+import '../widgets/product/product_details_dialog.dart';
 import '../widgets/custom_bottom_navigation.dart';
 
 class StockPage extends StatefulWidget {

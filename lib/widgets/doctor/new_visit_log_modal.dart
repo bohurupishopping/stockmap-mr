@@ -3,10 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import '../bloc/doctor/doctor_detail_cubit.dart';
-import '../bloc/doctor/doctor_state.dart';
-import '../models/doctor_models.dart';
-import '../services/location_service.dart';
+import '../../bloc/doctor/doctor_detail_cubit.dart';
+import '../../bloc/doctor/doctor_state.dart';
+import '../../models/doctor_models.dart';
+import '../../services/location_service.dart';
 
 class NewVisitLogModal extends StatefulWidget {
   final String doctorId;

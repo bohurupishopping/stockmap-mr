@@ -35,14 +35,7 @@ class DashboardPage extends StatelessWidget {
       color: Color(0xFF2E7D32),
       gradientColors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
     ),
-    NavItem(
-      title: 'Reports',
-      description: 'View analytics',
-      icon: Icons.analytics,
-      route: '/report',
-      color: Color(0xFFfb923c),
-      gradientColors: [Color(0xFFfb923c), Color(0xFFf97316)],
-    ),
+    
     NavItem(
       title: 'Doctors',
       description: 'Manage doctors',
@@ -51,14 +44,7 @@ class DashboardPage extends StatelessWidget {
       color: Color(0xFF34d399),
       gradientColors: [Color(0xFF34d399), Color(0xFF10b981)],
     ),
-    NavItem(
-      title: 'Settings',
-      description: 'App settings',
-      icon: Icons.settings,
-      route: '/settings',
-      color: Color(0xFFf472b6),
-      gradientColors: [Color(0xFFf472b6), Color(0xFFec4899)],
-    ),
+    
   ];
 
   @override

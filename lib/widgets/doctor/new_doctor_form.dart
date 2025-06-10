@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../models/doctor_models.dart';
+import '../../models/doctor_models.dart';
 
 class NewDoctorForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
