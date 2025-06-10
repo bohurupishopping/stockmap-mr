@@ -1,6 +1,9 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/doctor_models.dart';
+import '../../services/location_service.dart';
 
 class NewDoctorForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
@@ -30,6 +33,17 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
   DateTime? _anniversaryDate;
   DoctorTier? _selectedTier;
   bool _isLoading = false;
+  bool _isGettingLocation = false;
+
+  // Modern color scheme
+  static const Color _primaryColor = Color(0xFF2563EB); // Modern blue
+  static const Color _surfaceColor = Color(0xFFF8FAFC); // Light gray
+  static const Color _textPrimary = Color(0xFF1E293B); // Dark slate
+  static const Color _textSecondary = Color(0xFF64748B); // Medium slate
+  static const Color _borderColor = Color(0xFFE2E8F0); // Light border
+  static const Color _successColor = Color(0xFF059669); // Modern green
+  static const Color _warningColor = Color(0xFFD97706); // Modern orange
+  static const Color _errorColor = Color(0xFFDC2626); // Modern red
 
   @override
   void dispose() {
@@ -45,86 +59,128 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 600;
+    
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 16 : 32,
+        vertical: isSmallScreen ? 24 : 32,
       ),
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
-        height: MediaQuery.of(context).size.height * 0.8,
-        padding: const EdgeInsets.all(24),
+        width: double.infinity,
+        constraints: BoxConstraints(
+          maxWidth: 720,
+          maxHeight: screenSize.height * 0.9,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
           children: [
-            _buildHeader(),
-            const SizedBox(height: 20),
+            _buildHeader(isSmallScreen),
             Expanded(
               child: Form(
                 key: _formKey,
                 child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 20 : 32,
+                    vertical: 8,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildBasicInfoSection(),
-                      const SizedBox(height: 24),
-                      _buildContactInfoSection(),
-                      const SizedBox(height: 24),
-                      _buildPersonalInfoSection(),
-                      const SizedBox(height: 24),
-                      _buildLocationSection(),
+                      _buildBasicInfoSection(isSmallScreen),
+                      SizedBox(height: isSmallScreen ? 20 : 28),
+                      _buildContactInfoSection(isSmallScreen),
+                      SizedBox(height: isSmallScreen ? 20 : 28),
+                      _buildPersonalInfoSection(isSmallScreen),
+                      SizedBox(height: isSmallScreen ? 20 : 28),
+                      _buildLocationSection(isSmallScreen),
+                      SizedBox(height: isSmallScreen ? 16 : 24),
                     ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            _buildActionButtons(),
+            _buildActionButtons(isSmallScreen),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      children: [
-        Icon(
-          Icons.person_add,
-          color: Colors.blue[700],
-          size: 28,
+  Widget _buildHeader(bool isSmallScreen) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 20 : 32,
+        vertical: isSmallScreen ? 16 : 24,
+      ),
+      decoration: const BoxDecoration(
+        color: _surfaceColor,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
         ),
-        const SizedBox(width: 12),
-        const Text(
-          'Add New Doctor',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: _primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.person_add_rounded,
+              color: _primaryColor,
+              size: 24,
+            ),
           ),
-        ),
-        const Spacer(),
-        IconButton(
-          onPressed: widget.onCancel ?? () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.close),
-          color: Colors.grey[600],
-        ),
-      ],
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Add New Doctor',
+              style: TextStyle(
+                fontSize: isSmallScreen ? 20 : 24,
+                fontWeight: FontWeight.w700,
+                color: _textPrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: widget.onCancel ?? () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close_rounded),
+            color: _textSecondary,
+            iconSize: 20,
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white,
+              padding: const EdgeInsets.all(8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildBasicInfoSection() {
+  Widget _buildBasicInfoSection(bool isSmallScreen) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Basic Information'),
-        const SizedBox(height: 16),
-        TextFormField(
+        _buildSectionTitle('Basic Information', Icons.info_outline_rounded),
+        SizedBox(height: isSmallScreen ? 12 : 16),
+        _buildTextField(
           controller: _fullNameController,
-          decoration: const InputDecoration(
-            labelText: 'Full Name *',
-            hintText: 'Enter doctor\'s full name',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.person),
-          ),
+          label: 'Full Name',
+          hint: 'Enter doctor\'s full name',
+          icon: Icons.person_outline_rounded,
+          isRequired: true,
           textCapitalization: TextCapitalization.words,
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
@@ -134,118 +190,33 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
           },
         ),
         const SizedBox(height: 16),
-        TextFormField(
+        _buildTextField(
           controller: _specialtyController,
-          decoration: const InputDecoration(
-            labelText: 'Specialty',
-            hintText: 'e.g., Cardiologist, Pediatrician',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.medical_services),
-          ),
+          label: 'Specialty',
+          hint: 'e.g., Cardiologist, Pediatrician',
+          icon: Icons.medical_services_outlined,
           textCapitalization: TextCapitalization.words,
         ),
         const SizedBox(height: 16),
-        DropdownButtonFormField<DoctorTier>(
-          value: _selectedTier,
-          decoration: const InputDecoration(
-            labelText: 'Doctor Tier',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.star),
-          ),
-          items: DoctorTier.values.map((tier) {
-            String label;
-            String description;
-            Color color;
-            
-            switch (tier) {
-              case DoctorTier.a:
-                label = 'Tier A';
-                description = 'High Potential';
-                color = Colors.green;
-                break;
-              case DoctorTier.b:
-                label = 'Tier B';
-                description = 'Medium Potential';
-                color = Colors.orange;
-                break;
-              case DoctorTier.c:
-                label = 'Tier C';
-                description = 'Low Potential';
-                color = Colors.red;
-                break;
-            }
-            
-            return DropdownMenuItem(
-              value: tier,
-              child: Row(
-                children: [
-                  Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      // ignore: deprecated_member_use
-                      color: color.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: color),
-                    ),
-                    child: Center(
-                      child: Text(
-                        tier.name.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: color,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(label),
-                      Text(
-                        description,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedTier = value;
-            });
-          },
-        ),
+        _buildTierDropdown(),
       ],
     );
   }
 
-  Widget _buildContactInfoSection() {
+  Widget _buildContactInfoSection(bool isSmallScreen) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Contact Information'),
-        const SizedBox(height: 16),
-        TextFormField(
+        _buildSectionTitle('Contact Information', Icons.contact_phone_outlined),
+        SizedBox(height: isSmallScreen ? 12 : 16),
+        _buildTextField(
           controller: _phoneNumberController,
-          decoration: const InputDecoration(
-            labelText: 'Phone Number',
-            hintText: '+1 234 567 8900',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.phone),
-          ),
+          label: 'Phone Number',
+          hint: '+91 98765 43210',
+          icon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
           validator: (value) {
             if (value != null && value.isNotEmpty) {
-              // Basic phone validation
               if (!RegExp(r'^[+]?[0-9\s\-\(\)]+$').hasMatch(value)) {
                 return 'Please enter a valid phone number';
               }
@@ -254,14 +225,11 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
           },
         ),
         const SizedBox(height: 16),
-        TextFormField(
+        _buildTextField(
           controller: _emailController,
-          decoration: const InputDecoration(
-            labelText: 'Email',
-            hintText: 'doctor@example.com',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.email),
-          ),
+          label: 'Email',
+          hint: 'doctor@example.com',
+          icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
           validator: (value) {
             if (value != null && value.isNotEmpty) {
@@ -273,14 +241,11 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
           },
         ),
         const SizedBox(height: 16),
-        TextFormField(
+        _buildTextField(
           controller: _clinicAddressController,
-          decoration: const InputDecoration(
-            labelText: 'Clinic Address',
-            hintText: 'Enter clinic address',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.location_on),
-          ),
+          label: 'Clinic Address',
+          hint: 'Enter clinic address',
+          icon: Icons.location_on_outlined,
           maxLines: 2,
           textCapitalization: TextCapitalization.words,
         ),
@@ -288,108 +253,455 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
     );
   }
 
-  Widget _buildPersonalInfoSection() {
+  Widget _buildPersonalInfoSection(bool isSmallScreen) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Personal Information'),
-        const SizedBox(height: 16),
+        _buildSectionTitle('Personal Information', Icons.calendar_today_outlined),
+        SizedBox(height: isSmallScreen ? 12 : 16),
+        isSmallScreen
+            ? Column(
+                children: [
+                  _buildDateField(
+                    label: 'Date of Birth',
+                    value: _dateOfBirth,
+                    onTap: () => _selectDate(context, true),
+                    icon: Icons.cake_outlined,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDateField(
+                    label: 'Anniversary Date',
+                    value: _anniversaryDate,
+                    onTap: () => _selectDate(context, false),
+                    icon: Icons.favorite_outline_rounded,
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: _buildDateField(
+                      label: 'Date of Birth',
+                      value: _dateOfBirth,
+                      onTap: () => _selectDate(context, true),
+                      icon: Icons.cake_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildDateField(
+                      label: 'Anniversary Date',
+                      value: _anniversaryDate,
+                      onTap: () => _selectDate(context, false),
+                      icon: Icons.favorite_outline_rounded,
+                    ),
+                  ),
+                ],
+              ),
+      ],
+    );
+  }
+
+  Widget _buildLocationSection(bool isSmallScreen) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Row(
           children: [
             Expanded(
-              child: _buildDateField(
-                label: 'Date of Birth',
-                value: _dateOfBirth,
-                onTap: () => _selectDate(context, true),
-                icon: Icons.cake,
-              ),
+              child: _buildSectionTitle('Location (Optional)', Icons.my_location_outlined),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildDateField(
-                label: 'Anniversary Date',
-                value: _anniversaryDate,
-                onTap: () => _selectDate(context, false),
-                icon: Icons.favorite,
-              ),
-            ),
+            _buildGpsButton(),
           ],
+        ),
+        SizedBox(height: isSmallScreen ? 12 : 16),
+        isSmallScreen
+            ? Column(
+                children: [
+                  _buildTextField(
+                    controller: _latitudeController,
+                    label: 'Latitude',
+                    hint: '19.0760',
+                    icon: Icons.my_location_outlined,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
+                    ],
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        final lat = double.tryParse(value);
+                        if (lat == null || lat < -90 || lat > 90) {
+                          return 'Invalid latitude';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _longitudeController,
+                    label: 'Longitude',
+                    hint: '72.8777',
+                    icon: Icons.place_outlined,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
+                    ],
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        final lng = double.tryParse(value);
+                        if (lng == null || lng < -180 || lng > 180) {
+                          return 'Invalid longitude';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _latitudeController,
+                      label: 'Latitude',
+                      hint: '19.0760',
+                      icon: Icons.my_location_outlined,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
+                      ],
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final lat = double.tryParse(value);
+                          if (lat == null || lat < -90 || lat > 90) {
+                            return 'Invalid latitude';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildTextField(
+                      controller: _longitudeController,
+                      label: 'Longitude',
+                      hint: '72.8777',
+                      icon: Icons.place_outlined,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
+                      ],
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final lng = double.tryParse(value);
+                          if (lng == null || lng < -180 || lng > 180) {
+                            return 'Invalid longitude';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+      ],
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: _primaryColor,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: _textPrimary,
+            letterSpacing: -0.2,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildLocationSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle('Location (Optional)'),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _latitudeController,
-                decoration: const InputDecoration(
-                  labelText: 'Latitude',
-                  hintText: '40.7128',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.my_location),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
-                ],
-                validator: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    final lat = double.tryParse(value);
-                    if (lat == null || lat < -90 || lat > 90) {
-                      return 'Invalid latitude';
-                    }
-                  }
-                  return null;
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                controller: _longitudeController,
-                decoration: const InputDecoration(
-                  labelText: 'Longitude',
-                  hintText: '-74.0060',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.place),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
-                ],
-                validator: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    final lng = double.tryParse(value);
-                    if (lng == null || lng < -180 || lng > 180) {
-                      return 'Invalid longitude';
-                    }
-                  }
-                  return null;
-                },
-              ),
-            ),
-          ],
+  Widget _buildGpsButton() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: _isGettingLocation ? _primaryColor : _borderColor,
+          width: 1,
         ),
-      ],
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: Colors.blue[700],
       ),
+      child: Material(
+        color: _isGettingLocation 
+            ? _primaryColor.withOpacity(0.1) 
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: _isGettingLocation ? null : _getCurrentLocation,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: _isGettingLocation
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
+                    ),
+                  )
+                : Icon(
+                    Icons.gps_fixed_rounded,
+                    size: 16,
+                    color: _primaryColor,
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() {
+      _isGettingLocation = true;
+    });
+
+    try {
+      // Request location permission
+      final hasPermission = await LocationService.requestLocationPermission();
+      if (!hasPermission) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location permission is required to get current location'),
+              backgroundColor: _errorColor,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Get current location
+      final position = await LocationService.getCurrentLocation();
+      if (position != null) {
+        _latitudeController.text = position.latitude.toStringAsFixed(6);
+        _longitudeController.text = position.longitude.toStringAsFixed(6);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location updated successfully'),
+              backgroundColor: _successColor,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to get current location. Please try again.'),
+              backgroundColor: _errorColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error getting location: $e'),
+            backgroundColor: _errorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGettingLocation = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool isRequired = false,
+    TextInputType? keyboardType,
+    TextCapitalization? textCapitalization,
+    int maxLines = 1,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      textCapitalization: textCapitalization ?? TextCapitalization.none,
+      maxLines: maxLines,
+      inputFormatters: inputFormatters,
+      validator: validator,
+      style: const TextStyle(
+        fontSize: 14,
+        color: _textPrimary,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        labelText: isRequired ? '$label *' : label,
+        hintText: hint,
+        prefixIcon: Icon(icon, size: 18, color: _textSecondary),
+        labelStyle: const TextStyle(
+          color: _textSecondary,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        hintStyle: TextStyle(
+          color: _textSecondary.withOpacity(0.7),
+          fontSize: 13,
+        ),
+        filled: true,
+        fillColor: _surfaceColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _borderColor, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _borderColor, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _primaryColor, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _errorColor, width: 1),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+
+  Widget _buildTierDropdown() {
+    return DropdownButtonFormField<DoctorTier>(
+      value: _selectedTier,
+      style: const TextStyle(
+        fontSize: 14,
+        color: _textPrimary,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        labelText: 'Doctor Tier',
+        prefixIcon: const Icon(Icons.star_outline_rounded, size: 18, color: _textSecondary),
+        labelStyle: const TextStyle(
+          color: _textSecondary,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        filled: true,
+        fillColor: _surfaceColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _borderColor, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _borderColor, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _primaryColor, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      items: DoctorTier.values.map((tier) {
+        String label;
+        String description;
+        Color color;
+        
+        switch (tier) {
+          case DoctorTier.a:
+            label = 'Tier A';
+            description = 'High Potential';
+            color = _successColor;
+            break;
+          case DoctorTier.b:
+            label = 'Tier B';
+            description = 'Medium Potential';
+            color = _warningColor;
+            break;
+          case DoctorTier.c:
+            label = 'Tier C';
+            description = 'Low Potential';
+            color = _errorColor;
+            break;
+        }
+        
+        return DropdownMenuItem(
+          value: tier,
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: color.withOpacity(0.3), width: 1),
+                ),
+                child: Center(
+                  child: Text(
+                    tier.name.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _textPrimary,
+                    ),
+                  ),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: _textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedTier = value;
+        });
+      },
     );
   }
 
@@ -401,65 +713,124 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
   }) {
     return InkWell(
       onTap: onTap,
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          prefixIcon: Icon(icon),
-          suffixIcon: const Icon(Icons.calendar_today),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: _surfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _borderColor, width: 1),
         ),
-        child: Text(
-          value != null
-              ? '${value.day}/${value.month}/${value.year}'
-              : 'Select date',
-          style: TextStyle(
-            color: value != null ? Colors.black87 : Colors.grey[600],
-          ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: _textSecondary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: _textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value != null
+                        ? '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}'
+                        : 'Select date',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: value != null ? _textPrimary : _textSecondary.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 16,
+              color: _textSecondary.withOpacity(0.7),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildActionButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: _isLoading ? null : (widget.onCancel ?? () => Navigator.of(context).pop()),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Cancel'),
-          ),
+  Widget _buildActionButtons(bool isSmallScreen) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 20 : 32,
+        vertical: isSmallScreen ? 16 : 24,
+      ),
+      decoration: const BoxDecoration(
+        color: _surfaceColor,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _submitForm,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[700],
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _isLoading ? null : (widget.onCancel ?? () => Navigator.of(context).pop()),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: const BorderSide(color: _borderColor, width: 1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                foregroundColor: _textSecondary,
+              ),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _submitForm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Add Doctor',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  )
-                : const Text('Add Doctor'),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -474,8 +845,11 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.blue[700]!,
+            colorScheme: const ColorScheme.light(
+              primary: _primaryColor,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: _textPrimary,
             ),
           ),
           child: child!,

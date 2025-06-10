@@ -34,6 +34,21 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
     
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
+      floatingActionButton: BlocBuilder<DoctorDetailCubit, DoctorDetailState>(
+        builder: (context, state) {
+          if (state is DoctorDetailLoaded) {
+            return FloatingActionButton(
+              onPressed: () => _showNewVisitModal(state.doctor),
+              backgroundColor: const Color(0xFF2563EB),
+              child: const Icon(
+                Icons.add_rounded,
+                color: Colors.white,
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
       appBar: AppBar(
         title: const Text(
           'Doctor Details',
@@ -110,71 +125,71 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
   Widget _buildDoctorInfoSection(Doctor doctor, bool isTablet) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
       ),
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Compact header row with all main info
-          Row(
+          // Avatar and Tier
+          Column(
             children: [
-              // Avatar
               Container(
-                width: 56,
-                height: 56,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2563EB),
-                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFF2563EB).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: const Color(0xFF2563EB).withOpacity(0.3),
+                    width: 1.5,
+                  ),
                 ),
-                child: Center(
-                  child: Text(
-                    doctor.fullName.split(' ').map((e) => e[0]).take(2).join(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                child: const Center(
+                  child: Icon(
+                    Icons.medical_information_rounded,
+                    color: Color(0xFF2563EB),
+                    size: 28,
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-              // Name and specialty
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      doctor.fullName,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                    if (doctor.specialty != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        doctor.specialty!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              // Tier badge
+              const SizedBox(height: 8),
               _buildTierBadge(doctor.tier),
             ],
           ),
-          const SizedBox(height: 20),
-          // Compact contact info
-          _buildCompactContactInfo(doctor, isTablet),
+          const SizedBox(width: 16),
+          // Contact Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Name and Specialty
+                Text(
+                  doctor.fullName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                if (doctor.specialty != null) 
+                  Text(
+                    doctor.specialty!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                // Contact Info in Wrap
+                _buildCompactContactInfo(doctor, isTablet),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -209,62 +224,44 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
 
     if (contacts.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
-      ),
-      child: isTablet && contacts.length > 1
-          ? Wrap(
-              spacing: 24,
-              runSpacing: 12,
-              children: contacts.map((contact) => _buildContactItem(contact)).toList(),
-            )
-          : Column(
-              children: contacts
-                  .map((contact) => Padding(
-                        padding: EdgeInsets.only(
-                          bottom: contact == contacts.last ? 0 : 12,
-                        ),
-                        child: _buildContactItem(contact),
-                      ))
-                  .toList(),
-            ),
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: contacts.map((contact) => _buildContactChip(contact)).toList(),
     );
   }
 
-  Widget _buildContactItem(Map<String, dynamic> contact) {
-    return Row(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: (contact['color'] as Color).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
+  Widget _buildContactChip(Map<String, dynamic> contact) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: (contact['color'] as Color).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: (contact['color'] as Color).withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
             contact['icon'] as IconData,
-            size: 16,
+            size: 14,
             color: contact['color'] as Color,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
+          const SizedBox(width: 6),
+          Text(
             contact['value'] as String,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF475569),
+            style: TextStyle(
+              fontSize: 13,
+              color: contact['color'] as Color,
               fontWeight: FontWeight.w500,
             ),
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -272,42 +269,51 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
 
   Widget _buildTierBadge(DoctorTier? tier) {
     Color tierColor;
-    String tierLabel;
     
     switch (tier) {
       case DoctorTier.a:
         tierColor = const Color(0xFF059669);
-        tierLabel = 'A';
         break;
       case DoctorTier.b:
         tierColor = const Color(0xFFD97706);
-        tierLabel = 'B';
         break;
       case DoctorTier.c:
         tierColor = const Color(0xFFDC2626);
-        tierLabel = 'C';
         break;
       default:
         tierColor = const Color(0xFF64748B);
-        tierLabel = '?';
+    }
+
+    IconData tierIcon;
+    switch (tier) {
+      case DoctorTier.a:
+        tierIcon = Icons.emoji_events_rounded; // Trophy icon for top tier
+        break;
+      case DoctorTier.b:
+        tierIcon = Icons.verified_rounded; // Verified icon for mid tier
+        break;
+      case DoctorTier.c:
+        tierIcon = Icons.assignment_rounded; // Assignment icon for base tier
+        break;
+      default:
+        tierIcon = Icons.help_outline_rounded;
     }
 
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: tierColor,
+        color: tierColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
-      ),
-      child: Center(
-        child: Text(
-          tierLabel,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
+        border: Border.all(
+          color: tierColor.withOpacity(0.3),
+          width: 1.5,
         ),
+      ),
+      child: Icon(
+        tierIcon,
+        color: tierColor,
+        size: 24,
       ),
     );
   }
@@ -315,74 +321,46 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
   Widget _buildVisitHistorySection(Doctor doctor, List<MrVisitLog> visitHistory, bool isTablet) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Compact header
+          // Header with visit count and action button
           Row(
             children: [
+              const Text(
+                'Visit History',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(width: 8),
               Container(
-                width: 40,
-                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2563EB).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.history_rounded,
-                  size: 20,
-                  color: Color(0xFF2563EB),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Visit History',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                    Text(
-                      '${visitHistory.length} ${visitHistory.length == 1 ? 'visit' : 'visits'}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => _showNewVisitModal(doctor),
-                icon: const Icon(Icons.add_rounded, size: 16),
-                label: const Text('Log Visit'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+                child: Text(
+                  '${visitHistory.length}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2563EB),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          // Visit history content
           if (visitHistory.isEmpty)
             _buildEmptyVisitHistory()
           else
@@ -443,16 +421,27 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
   }
 
   Widget _buildVisitHistoryList(List<MrVisitLog> visitHistory, bool isTablet) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: visitHistory.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final visit = visitHistory[index];
-        return _VisitCard(visit: visit, isTablet: isTablet);
-      },
-    );
+    return isTablet 
+      ? Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: visitHistory.map((visit) => 
+            SizedBox(
+              width: (MediaQuery.of(context).size.width - 64) / 2,
+              child: _VisitCard(visit: visit, isTablet: true),
+            )
+          ).toList(),
+        )
+      : ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: visitHistory.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final visit = visitHistory[index];
+            return _VisitCard(visit: visit, isTablet: false);
+          },
+        );
   }
 
 
@@ -486,7 +475,7 @@ class _VisitCard extends StatelessWidget {
     final hasNextVisit = visit.nextVisitDate != null;
     
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFAFBFC),
         borderRadius: BorderRadius.circular(12),
@@ -496,32 +485,31 @@ class _VisitCard extends StatelessWidget {
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Compact date header
+          // Date and status in one row
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2563EB),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Icon(
                   Icons.event_rounded,
-                  size: 16,
+                  size: 14,
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
                     Text(
-                      DateFormat('MMM dd, yyyy').format(visit.visitDate),
+                      DateFormat('MMM dd, yyyy • ').format(visit.visitDate),
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF1E293B),
                       ),
@@ -529,7 +517,7 @@ class _VisitCard extends StatelessWidget {
                     Text(
                       DateFormat('h:mm a').format(visit.visitDate),
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         color: Color(0xFF64748B),
                         fontWeight: FontWeight.w500,
                       ),
@@ -538,13 +526,13 @@ class _VisitCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFF059669).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(
-                  'Completed',
+                  'Done',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -555,102 +543,58 @@ class _VisitCard extends StatelessWidget {
             ],
           ),
           
-          // Compact content sections
+          // Content chips
           if (hasProducts || hasFeedback) ...[
-            const SizedBox(height: 16),
-            if (isTablet && hasProducts && hasFeedback)
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildCompactInfoSection(
-                      'Products',
-                      visit.productsDetailed!,
-                      Icons.medical_services_rounded,
-                      const Color(0xFF7C3AED),
-                    ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (hasProducts)
+                  _buildContentChip(
+                    'Products',
+                    visit.productsDetailed!,
+                    Icons.medical_services_rounded,
+                    const Color(0xFF7C3AED),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildCompactInfoSection(
-                      'Feedback',
-                      visit.feedbackReceived!,
-                      Icons.feedback_rounded,
-                      const Color(0xFF0891B2),
-                    ),
+                if (hasFeedback)
+                  _buildContentChip(
+                    'Feedback',
+                    visit.feedbackReceived!,
+                    Icons.feedback_rounded,
+                    const Color(0xFF0891B2),
                   ),
-                ],
-              )
-            else ...[
-              if (hasProducts)
-                _buildCompactInfoSection(
-                  'Products Discussed',
-                  visit.productsDetailed!,
-                  Icons.medical_services_rounded,
-                  const Color(0xFF7C3AED),
-                ),
-              if (hasProducts && hasFeedback) const SizedBox(height: 12),
-              if (hasFeedback)
-                _buildCompactInfoSection(
-                  'Doctor Feedback',
-                  visit.feedbackReceived!,
-                  Icons.feedback_rounded,
-                  const Color(0xFF0891B2),
-                ),
-            ],
+              ],
+            ),
           ],
           
-          // Next visit info
+          // Next visit chip
           if (hasNextVisit) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: const Color(0xFFD97706).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: const Color(0xFFD97706).withOpacity(0.2),
-                  width: 1,
                 ),
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD97706).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(
-                      Icons.schedule_rounded,
-                      size: 14,
-                      color: Color(0xFFD97706),
-                    ),
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 14,
+                    color: const Color(0xFFD97706),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Next Follow-up',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFFD97706),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          DateFormat('MMM dd, yyyy').format(visit.nextVisitDate!),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1E293B),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(width: 6),
+                  Text(
+                    'Next: ${DateFormat('MMM dd, yyyy').format(visit.nextVisitDate!)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFD97706),
                     ),
                   ),
                 ],
@@ -662,62 +606,47 @@ class _VisitCard extends StatelessWidget {
     );
   }
 
-  Widget _buildCompactInfoSection(String title, String content, IconData icon, Color color) {
+  Widget _buildContentChip(String title, String content, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: color.withOpacity(0.15),
-          width: 1,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  icon,
-                  size: 12,
-                  color: color,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
-                ),
-              ),
-            ],
+          Icon(
+            icon,
+            size: 14,
+            color: color,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(width: 6),
           Text(
-            content,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF475569),
-              height: 1.4,
-              fontWeight: FontWeight.w500,
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
             ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              content,
+              style: TextStyle(
+                fontSize: 12,
+                color: color.withOpacity(0.8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+
 }

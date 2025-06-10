@@ -99,6 +99,9 @@ _CreateVisitLogRequest _$CreateVisitLogRequestFromJson(
   visitDate: DateTime.parse(json['visit_date'] as String),
   productsDetailed: json['products_detailed'] as String?,
   feedbackReceived: json['feedback_received'] as String?,
+  samplesProvided: json['samples_provided'] as String?,
+  competitorActivityNotes: json['competitor_activity_notes'] as String?,
+  prescriptionPotentialNotes: json['prescription_potential_notes'] as String?,
   nextVisitDate: json['next_visit_date'] == null
       ? null
       : DateTime.parse(json['next_visit_date'] as String),
@@ -115,6 +118,9 @@ Map<String, dynamic> _$CreateVisitLogRequestToJson(
   'visit_date': instance.visitDate.toIso8601String(),
   'products_detailed': instance.productsDetailed,
   'feedback_received': instance.feedbackReceived,
+  'samples_provided': instance.samplesProvided,
+  'competitor_activity_notes': instance.competitorActivityNotes,
+  'prescription_potential_notes': instance.prescriptionPotentialNotes,
   'next_visit_date': instance.nextVisitDate?.toIso8601String(),
   'next_visit_objective': instance.nextVisitObjective,
   'is_location_verified': instance.isLocationVerified,
