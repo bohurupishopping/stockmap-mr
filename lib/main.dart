@@ -9,6 +9,8 @@ import 'repositories/auth_repository.dart';
 import 'services/order_service.dart';
 import 'services/target_service.dart';
 import 'bloc/speedometer/speedometer_cubit.dart';
+import 'bloc/doctor/doctor_cubit.dart';
+import 'bloc/doctor/doctor_detail_cubit.dart';
 import 'router/app_router.dart';
 
 void main() async {
@@ -52,6 +54,12 @@ class MainApp extends StatelessWidget {
           ),
           BlocProvider<SpeedometerCubit>(
             create: (context) => SpeedometerCubit(),
+          ),
+          BlocProvider<DoctorCubit>(
+            create: (context) => DoctorCubit(),
+          ),
+          BlocProvider<DoctorDetailCubit>(
+            create: (context) => DoctorDetailCubit(),
           ),
         ],
         child: Builder(

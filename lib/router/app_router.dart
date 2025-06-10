@@ -10,6 +10,8 @@ import '../pages/report_page.dart';
 import '../pages/new_order_page.dart';
 import '../pages/orders_page.dart';
 import '../pages/speedometer_page.dart';
+import '../pages/doctors_list_page.dart';
+import '../pages/doctor_detail_page.dart';
 
 class AppRouter {
   static GoRouter createRouter(AuthBloc authBloc) {
@@ -70,6 +72,19 @@ class AppRouter {
           path: '/speedometer',
           name: 'speedometer',
           builder: (context, state) => const SpeedometerPage(),
+        ),
+        GoRoute(
+          path: '/doctors',
+          name: 'doctors',
+          builder: (context, state) => const DoctorsListPage(),
+        ),
+        GoRoute(
+          path: '/doctors/:doctorId',
+          name: 'doctor_detail',
+          builder: (context, state) {
+            final doctorId = state.pathParameters['doctorId']!;
+            return DoctorDetailPage(doctorId: doctorId);
+          },
         ),
       ],
     );
