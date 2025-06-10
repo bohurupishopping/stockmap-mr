@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -59,7 +61,7 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
                   children: [
                     _buildDoctorInfoSection(state.doctor),
                     const SizedBox(height: 24),
-                    _buildVisitHistorySection(state.visitHistory),
+                    _buildVisitHistorySection(state.doctor, state.visitHistory),
                   ],
                 ),
               ),
@@ -255,7 +257,7 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
     );
   }
 
-  Widget _buildVisitHistorySection(List<MrVisitLog> visitHistory) {
+  Widget _buildVisitHistorySection(Doctor doctor, List<MrVisitLog> visitHistory) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
@@ -288,7 +290,7 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => _showNewVisitModal(),
+                  onPressed: () => _showNewVisitModal(doctor),
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Log Visit'),
                   style: ElevatedButton.styleFrom(
@@ -374,13 +376,14 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
   }
 
 
-  void _showNewVisitModal() {
+  void _showNewVisitModal(Doctor doctor) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => NewVisitLogModal(
         doctorId: widget.doctorId,
+        doctor: doctor,
         onSuccess: () {
           // Refresh visit history after successful creation
           context.read<DoctorDetailCubit>().refreshVisitHistory(widget.doctorId);

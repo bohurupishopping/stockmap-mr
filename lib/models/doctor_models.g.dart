@@ -67,6 +67,9 @@ _MrVisitLog _$MrVisitLogFromJson(Map<String, dynamic> json) => _MrVisitLog(
       : DateTime.parse(json['next_visit_date'] as String),
   nextVisitObjective: json['next_visit_objective'] as String?,
   linkedSaleOrderId: json['linked_sale_order_id'] as String?,
+  isLocationVerified: json['is_location_verified'] as bool?,
+  distanceFromClinicMeters: (json['distance_from_clinic_meters'] as num?)
+      ?.toDouble(),
   createdAt: DateTime.parse(json['created_at'] as String),
 );
 
@@ -84,6 +87,8 @@ Map<String, dynamic> _$MrVisitLogToJson(_MrVisitLog instance) =>
       'next_visit_date': instance.nextVisitDate?.toIso8601String(),
       'next_visit_objective': instance.nextVisitObjective,
       'linked_sale_order_id': instance.linkedSaleOrderId,
+      'is_location_verified': instance.isLocationVerified,
+      'distance_from_clinic_meters': instance.distanceFromClinicMeters,
       'created_at': instance.createdAt.toIso8601String(),
     };
 
@@ -98,6 +103,9 @@ _CreateVisitLogRequest _$CreateVisitLogRequestFromJson(
       ? null
       : DateTime.parse(json['next_visit_date'] as String),
   nextVisitObjective: json['next_visit_objective'] as String?,
+  isLocationVerified: json['is_location_verified'] as bool?,
+  distanceFromClinicMeters: (json['distance_from_clinic_meters'] as num?)
+      ?.toDouble(),
 );
 
 Map<String, dynamic> _$CreateVisitLogRequestToJson(
@@ -109,4 +117,6 @@ Map<String, dynamic> _$CreateVisitLogRequestToJson(
   'feedback_received': instance.feedbackReceived,
   'next_visit_date': instance.nextVisitDate?.toIso8601String(),
   'next_visit_objective': instance.nextVisitObjective,
+  'is_location_verified': instance.isLocationVerified,
+  'distance_from_clinic_meters': instance.distanceFromClinicMeters,
 };

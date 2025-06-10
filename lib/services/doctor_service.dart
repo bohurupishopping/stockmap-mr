@@ -121,6 +121,8 @@ class DoctorService {
             next_visit_date,
             next_visit_objective,
             linked_sale_order_id,
+            is_location_verified,
+            distance_from_clinic_meters,
             created_at
           ''')
           .eq('doctor_id', doctorId)
@@ -155,6 +157,8 @@ class DoctorService {
         'feedback_received': request.feedbackReceived,
         'next_visit_date': request.nextVisitDate?.toIso8601String(),
         'next_visit_objective': request.nextVisitObjective,
+        'is_location_verified': request.isLocationVerified,
+        'distance_from_clinic_meters': request.distanceFromClinicMeters,
       };
 
       final response = await _supabase
@@ -173,6 +177,8 @@ class DoctorService {
             next_visit_date,
             next_visit_objective,
             linked_sale_order_id,
+            is_location_verified,
+            distance_from_clinic_meters,
             created_at
           ''')
           .single();
@@ -243,6 +249,62 @@ class DoctorService {
           .toList();
     } catch (e) {
       log('DoctorService: Error searching doctors: $e');
+      rethrow;
+    }
+  }
+
+  /// Create a new doctor
+  static Future<Doctor> createDoctor(Map<String, dynamic> doctorData) async {
+    try {
+      log('DoctorService: Creating new doctor');
+      
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Add created_by field
+      doctorData['created_by'] = userId;
+      doctorData['is_active'] = true;
+
+      // Create the doctor
+      final response = await _supabase
+          .from('doctors')
+          .insert(doctorData)
+          .select('''
+            id,
+            full_name,
+            specialty,
+            clinic_address,
+            phone_number,
+            email,
+            date_of_birth,
+            anniversary_date,
+            tier,
+            latitude,
+            longitude,
+            is_active,
+            created_at,
+            updated_at,
+            created_by
+          ''')
+          .single();
+
+      final doctor = Doctor.fromJson(response);
+      
+      // Automatically assign the doctor to the current MR
+      await _supabase
+          .from('mr_doctor_allotments')
+          .insert({
+            'mr_user_id': userId,
+            'doctor_id': doctor.id,
+          });
+
+      log('DoctorService: Successfully created doctor and assigned to MR');
+      
+      return doctor;
+    } catch (e) {
+      log('DoctorService: Error creating doctor: $e');
       rethrow;
     }
   }

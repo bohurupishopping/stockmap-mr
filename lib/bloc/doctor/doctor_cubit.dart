@@ -52,4 +52,22 @@ class DoctorCubit extends Cubit<DoctorState> {
   Future<void> clearSearch() async {
     await loadDoctors();
   }
+
+  /// Create a new doctor
+  Future<void> createDoctor(Map<String, dynamic> doctorData) async {
+    try {
+      log('DoctorCubit: Creating new doctor');
+      emit(const DoctorState.loading());
+      
+      final doctor = await DoctorService.createDoctor(doctorData);
+      
+      log('DoctorCubit: Successfully created doctor: ${doctor.fullName}');
+      
+      // Reload the doctors list to include the new doctor
+      await loadDoctors();
+    } catch (e) {
+      log('DoctorCubit: Error creating doctor: $e');
+      emit(DoctorState.error(message: e.toString()));
+    }
+  }
 }

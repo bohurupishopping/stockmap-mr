@@ -1,9 +1,12 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../bloc/doctor/doctor_cubit.dart';
 import '../bloc/doctor/doctor_state.dart';
 import '../models/doctor_models.dart';
+import '../widgets/new_doctor_form.dart';
 
 class DoctorsListPage extends StatefulWidget {
   const DoctorsListPage({super.key});
@@ -71,14 +74,7 @@ class _DoctorsListPageState extends State<DoctorsListPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Implement add new doctor functionality
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Add new doctor feature coming soon!'),
-            ),
-          );
-        },
+        onPressed: () => _showNewDoctorForm(context),
         backgroundColor: Colors.blue[700],
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -181,6 +177,43 @@ class _DoctorsListPageState extends State<DoctorsListPage> {
             onTap: () => context.push('/doctors/${doctor.id}'),
           );
         },
+      ),
+    );
+  }
+
+  void _showNewDoctorForm(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => NewDoctorForm(
+        onSubmit: (doctorData) async {
+          Navigator.of(dialogContext).pop();
+          
+          try {
+            await context.read<DoctorCubit>().createDoctor(doctorData);
+            
+            if (mounted) {
+              // ignore: use_build_context_synchronously
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Doctor added successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              // ignore: use_build_context_synchronously
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to add doctor: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        },
+        onCancel: () => Navigator.of(dialogContext).pop(),
       ),
     );
   }

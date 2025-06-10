@@ -1,17 +1,22 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../bloc/doctor/doctor_detail_cubit.dart';
 import '../bloc/doctor/doctor_state.dart';
 import '../models/doctor_models.dart';
+import '../services/location_service.dart';
 
 class NewVisitLogModal extends StatefulWidget {
   final String doctorId;
+  final Doctor doctor;
   final VoidCallback? onSuccess;
 
   const NewVisitLogModal({
     super.key,
     required this.doctorId,
+    required this.doctor,
     this.onSuccess,
   });
 
@@ -29,11 +34,44 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
   DateTime? _nextVisitDate;
   
   late VisitLogCubit _visitLogCubit;
+  
+  // Location verification state
+  bool _isVerifyingLocation = false;
+  LocationVerificationResult? _locationResult;
 
   @override
   void initState() {
     super.initState();
     _visitLogCubit = VisitLogCubit();
+    _startLocationVerification();
+  }
+
+  /// Start location verification process
+  Future<void> _startLocationVerification() async {
+    setState(() {
+      _isVerifyingLocation = true;
+    });
+
+    try {
+      final result = await LocationService.performLocationVerification(
+        widget.doctor.latitude,
+        widget.doctor.longitude,
+      );
+      
+      setState(() {
+        _locationResult = result;
+        _isVerifyingLocation = false;
+      });
+    } catch (e) {
+      setState(() {
+        _locationResult = LocationVerificationResult(
+          isVerified: false,
+          distanceMeters: null,
+          message: 'Location verification failed',
+        );
+        _isVerifyingLocation = false;
+      });
+    }
   }
 
   @override
@@ -89,7 +127,13 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
                     child: SingleChildScrollView(
                       controller: scrollController,
                       padding: const EdgeInsets.all(20),
-                      child: _buildForm(),
+                      child: Column(
+                        children: [
+                          _buildLocationVerificationCard(),
+                          const SizedBox(height: 20),
+                          _buildForm(),
+                        ],
+                      ),
                     ),
                   ),
                   _buildBottomActions(),
@@ -130,6 +174,99 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
               Icons.close,
               color: Colors.white,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationVerificationCard() {
+    if (_isVerifyingLocation) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.blue[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue[200]!),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+            ),
+            SizedBox(width: 12),
+            Text(
+              'Verifying location...',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.blue,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_locationResult == null) {
+      return const SizedBox.shrink();
+    }
+
+    final isVerified = _locationResult!.isVerified;
+    final color = isVerified ? Colors.green : Colors.orange;
+    final icon = isVerified ? Icons.check_circle : Icons.warning;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isVerified ? 'Location Verified' : 'Location Not Verified',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _locationResult!.message,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: color.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: _startLocationVerification,
+            icon: Icon(
+              Icons.refresh,
+              color: color,
+              size: 18,
+            ),
+            tooltip: 'Refresh location',
           ),
         ],
       ),
@@ -446,6 +583,8 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
         nextVisitObjective: _nextObjectiveController.text.trim().isNotEmpty
             ? _nextObjectiveController.text.trim()
             : null,
+        isLocationVerified: _locationResult?.isVerified,
+        distanceFromClinicMeters: _locationResult?.distanceMeters,
       );
 
       _visitLogCubit.createVisitLog(request);

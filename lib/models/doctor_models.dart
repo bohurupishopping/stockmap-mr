@@ -53,6 +53,8 @@ class MrVisitLog with _$MrVisitLog {
     @JsonKey(name: 'next_visit_date') DateTime? nextVisitDate,
     @JsonKey(name: 'next_visit_objective') String? nextVisitObjective,
     @JsonKey(name: 'linked_sale_order_id') String? linkedSaleOrderId,
+    @JsonKey(name: 'is_location_verified') bool? isLocationVerified,
+    @JsonKey(name: 'distance_from_clinic_meters') double? distanceFromClinicMeters,
     @JsonKey(name: 'created_at') required DateTime createdAt,
   }) = _MrVisitLog;
 
@@ -71,6 +73,8 @@ class CreateVisitLogRequest with _$CreateVisitLogRequest {
     @JsonKey(name: 'feedback_received') String? feedbackReceived,
     @JsonKey(name: 'next_visit_date') DateTime? nextVisitDate,
     @JsonKey(name: 'next_visit_objective') String? nextVisitObjective,
+    @JsonKey(name: 'is_location_verified') bool? isLocationVerified,
+    @JsonKey(name: 'distance_from_clinic_meters') double? distanceFromClinicMeters,
   }) = _CreateVisitLogRequest;
 
   factory CreateVisitLogRequest.fromJson(Map<String, dynamic> json) => _$CreateVisitLogRequestFromJson(json);
