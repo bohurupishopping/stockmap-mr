@@ -12,6 +12,7 @@ import '../pages/orders_page.dart';
 import '../pages/speedometer_page.dart';
 import '../pages/doctors_list_page.dart';
 import '../pages/doctor_detail_page.dart';
+import '../pages/activity_page.dart';
 
 class AppRouter {
   static GoRouter createRouter(AuthBloc authBloc) {
@@ -85,6 +86,11 @@ class AppRouter {
             final doctorId = state.pathParameters['doctorId']!;
             return DoctorDetailPage(doctorId: doctorId);
           },
+        ),
+        GoRoute(
+          path: '/activity',
+          name: 'activity',
+          builder: (context, state) => const ActivityPage(),
         ),
       ],
     );

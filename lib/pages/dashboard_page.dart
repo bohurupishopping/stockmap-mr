@@ -44,6 +44,14 @@ class DashboardPage extends StatelessWidget {
       color: Color(0xFF34d399),
       gradientColors: [Color(0xFF34d399), Color(0xFF10b981)],
     ),
+    NavItem(
+      title: 'Activity',
+      description: 'View activity',
+      icon: Icons.history,
+      route: '/activity',
+      color: Color(0xFF34d399),
+      gradientColors: [Color(0xFF34d399), Color(0xFF10b981)],
+    ),
     
   ];
 
@@ -251,7 +259,7 @@ class _DashboardContent extends StatelessWidget {
           onTap: () {
             if (item.route == '/stock' || item.route == '/report'
             || item.route == '/create' || item.route == '/orders'
-             || item.route == '/doctors' || item.route == '/settings') {
+             || item.route == '/doctors' || item.route == '/activity') {
               context.go(item.route);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
