@@ -126,6 +126,7 @@ class _NewOrderPageState extends State<NewOrderPage>
                 child: SafeArea(
                   child: Column(
                     children: [
+                      _buildHeader(),
                       _buildStepIndicator(),
                       Expanded(
                         child: PageView(
@@ -420,6 +421,48 @@ class _NewOrderPageState extends State<NewOrderPage>
     );
   }
 
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => context.go('/dashboard'),
+            icon: const Icon(
+              Icons.home_rounded,
+              color: Color(0xFF6366f1),
+              size: 24,
+            ),
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFF6366f1).withValues(alpha: 0.1),
+              padding: const EdgeInsets.all(8),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'New Order',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1f2937),
+            ),
+          ),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
   void _showOrderSuccessDialog(BuildContext context, String orderId) {
     showDialog(
       context: context,
@@ -567,7 +610,7 @@ class _NewOrderPageState extends State<NewOrderPage>
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.of(context).pop();
-                        Navigator.of(context).pop();
+                        context.go('/dashboard');
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -579,7 +622,7 @@ class _NewOrderPageState extends State<NewOrderPage>
                         elevation: 0,
                       ),
                       child: const Text(
-                        'Done',
+                        'Home',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,

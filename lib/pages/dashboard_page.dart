@@ -27,14 +27,6 @@ class DashboardPage extends StatelessWidget {
       color: Color(0xFF2E7D32),
       gradientColors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
     ),
-        NavItem(
-      title: 'Create Order',
-      description: 'Place a order',
-      icon: Icons.receipt_long,
-      route: '/create',
-      color: Color(0xFF2E7D32),
-      gradientColors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
-    ),
     
     NavItem(
       title: 'Doctors',
@@ -49,8 +41,8 @@ class DashboardPage extends StatelessWidget {
       description: 'View activity',
       icon: Icons.history,
       route: '/activity',
-      color: Color(0xFF34d399),
-      gradientColors: [Color(0xFF34d399), Color(0xFF10b981)],
+      color: Color(0xFFEC4C4C),
+      gradientColors: [Color(0xFFEC4C4C), Color(0xFFE33E3E)],
     ),
     
   ];
