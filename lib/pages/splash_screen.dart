@@ -1,30 +1,32 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_state.dart';
-import 'package:go_router/go_router.dart';
+import '../bloc/auth/auth_event.dart';
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-  late List<Animation<double>> _letterAnimations;
-  final String _title = 'StockMap';
-  final String _subtitle = 'MR';
+class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
+    
     _controller = AnimationController(
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
     );
 
     _fadeAnimation = Tween<double>(
@@ -32,34 +34,38 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      curve: const Interval(0.0, 0.6, curve: Curves.easeInOut),
+    ));
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
     ));
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.5),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
+      curve: const Interval(0.4, 1.0, curve: Curves.easeOutCubic),
     ));
 
-    // Create animations for each letter
-    _letterAnimations = List.generate(
-      _title.length + _subtitle.length,
-      (index) => Tween<double>(
-        begin: 0.0,
-        end: 1.0,
-      ).animate(CurvedAnimation(
-        parent: _controller,
-        curve: Interval(
-          0.4 + (index * 0.05),
-          0.6 + (index * 0.05),
-          curve: Curves.easeOut,
-        ),
-      )),
-    );
-
     _controller.forward();
+    
+    // Start auth check immediately
+    context.read<AuthBloc>().add(const AuthEvent.checkAuthStatus());
+  }
+
+  void _navigateWithDelay(String route) {
+    if (!mounted) return;
+    
+    // Shorter delay since animations are already optimized
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) context.go(route);
+    });
   }
 
   @override
@@ -72,24 +78,30 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthAuthenticated) {
-          context.go('/dashboard');
-        } else if (state is AuthUnauthenticated ||
-                   state is AuthError ||
-                   state is AuthAccessDenied) {
-          context.go('/login');
+        switch (state) {
+          case AuthInitial():
+            // Stay on splash while checking auth
+            break;
+          case AuthLoading():
+            // Stay on splash while loading
+            break;
+          case AuthAuthenticated():
+            _navigateWithDelay('/dashboard');
+            break;
+          case AuthUnauthenticated():
+          case AuthError():
+          case AuthAccessDenied():
+            _navigateWithDelay('/login');
+            break;
         }
       },
       child: Scaffold(
         body: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Theme.of(context).primaryColor,
-                Theme.of(context).primaryColor.withOpacity(0.8),
-              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF6366f1), Color(0xFFa855f7)],
             ),
           ),
           child: SafeArea(
@@ -97,28 +109,42 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Animated Logo
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
+                  // Animated Logo Container
+                  ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
                       child: Container(
+                        width: 140,
+                        height: 140,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: const [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Color(0x26000000), // Precomputed alpha
                               blurRadius: 20,
-                              offset: const Offset(0, 10),
+                              offset: Offset(0, 10),
+                              spreadRadius: 2,
                             ),
                           ],
                         ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/maponus-logo.jpg',
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.cover,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(28),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFF6366f1),
+                                Color(0xFF8b5cf6),
+                              ],
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.inventory_2_rounded,
+                            size: 70,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -126,44 +152,49 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   ),
                   const SizedBox(height: 40),
                   // Animated Title
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
+                  SlideTransition(
+                    position: _slideAnimation,
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
                       child: Column(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              _title.length,
-                              (index) => FadeTransition(
-                                opacity: _letterAnimations[index],
-                                child: Text(
-                                  _title[index],
-                                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.5,
-                                  ),
+                          const Text(
+                            'StockMap MR',
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 1.2,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black26,
+                                  offset: Offset(0, 2),
+                                  blurRadius: 4,
                                 ),
-                              ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              _subtitle.length,
-                              (index) => FadeTransition(
-                                opacity: _letterAnimations[_title.length + index],
-                                child: Text(
-                                  _subtitle[index],
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 2,
-                                  ),
-                                ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0x26FFFFFF), // Precomputed alpha
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: const Color(0x4DFFFFFF), // Precomputed alpha
+                                width: 1,
+                              ),
+                            ),
+                            child: const Text(
+                              'Inventory Management System',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xF2FFFFFF), // Precomputed alpha
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ),
@@ -171,21 +202,52 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                     ),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 60),
                   // Animated Loading Indicator
                   FadeTransition(
                     opacity: _fadeAnimation,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0x1AFFFFFF), // Precomputed alpha
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: const SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Initializing...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xCCFFFFFF), // Precomputed alpha
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 80),
+                  // Version or Footer Text
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: const Text(
+                      'Version 1.3.0',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0x99FFFFFF), // Precomputed alpha
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
