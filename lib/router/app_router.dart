@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_state.dart';
+import '../pages/splash_screen.dart';
 import '../pages/login_page.dart';
 import '../pages/dashboard_page.dart';
 import '../pages/stock_page.dart';
@@ -17,28 +18,45 @@ import '../pages/activity_page.dart';
 class AppRouter {
   static GoRouter createRouter(AuthBloc authBloc) {
     return GoRouter(
-      initialLocation: '/login',
+      initialLocation: '/',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       redirect: (context, state) {
         final authState = authBloc.state;
+        final isSplashRoute = state.matchedLocation == '/';
         final isLoginRoute = state.matchedLocation == '/login';
         
-        if (authState is AuthInitial) {
-          return '/login';
-        } else if (authState is AuthLoading) {
-          return null; // Stay on current route while loading
-        } else if (authState is AuthAuthenticated) {
-          return isLoginRoute ? '/dashboard' : null;
-        } else if (authState is AuthUnauthenticated) {
-          return isLoginRoute ? null : '/login';
-        } else if (authState is AuthError) {
-          return isLoginRoute ? null : '/login';
-        } else if (authState is AuthAccessDenied) {
-          return '/login';
+        // Always allow splash screen during initial load
+        if (isSplashRoute && (authState is AuthInitial || authState is AuthLoading)) {
+          return null;
         }
-        return '/login';
+        
+        // Handle authenticated state
+        if (authState is AuthAuthenticated) {
+          if (isSplashRoute || isLoginRoute) {
+            return '/dashboard';
+          }
+          return null;
+        }
+        
+        // Handle unauthenticated states
+        if (authState is AuthUnauthenticated || 
+            authState is AuthError || 
+            authState is AuthAccessDenied) {
+          if (!isLoginRoute) {
+            return '/login';
+          }
+          return null;
+        }
+        
+        // Default case
+        return null;
       },
       routes: [
+        GoRoute(
+          path: '/',
+          name: 'splash',
+          builder: (context, state) => const SplashScreen(),
+        ),
         GoRoute(
           path: '/login',
           name: 'login',
