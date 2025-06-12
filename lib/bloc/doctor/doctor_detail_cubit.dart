@@ -175,6 +175,38 @@ class VisitLogCubit extends Cubit<VisitLogState> {
     }
   }
 
+  /// Update an existing visit log
+  Future<void> updateVisitLog(String visitLogId, CreateVisitLogRequest request) async {
+    try {
+      log('VisitLogCubit: Updating visit log: $visitLogId');
+      emit(const VisitLogState.loading());
+      
+      await DoctorService.updateVisitLog(visitLogId, request);
+      
+      emit(const VisitLogState.success());
+      log('VisitLogCubit: Successfully updated visit log');
+    } catch (e) {
+      log('VisitLogCubit: Error updating visit log: $e');
+      emit(VisitLogState.error(message: e.toString()));
+    }
+  }
+
+  /// Delete a visit log
+  Future<void> deleteVisitLog(String visitLogId) async {
+    try {
+      log('VisitLogCubit: Deleting visit log: $visitLogId');
+      emit(const VisitLogState.loading());
+      
+      await DoctorService.deleteVisitLog(visitLogId);
+      
+      emit(const VisitLogState.success());
+      log('VisitLogCubit: Successfully deleted visit log');
+    } catch (e) {
+      log('VisitLogCubit: Error deleting visit log: $e');
+      emit(VisitLogState.error(message: e.toString()));
+    }
+  }
+
   /// Reset state to initial
   void reset() {
     emit(const VisitLogState.initial());

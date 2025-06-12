@@ -3,6 +3,7 @@
 import 'dart:developer' as dev;
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import '../models/doctor_clinic_models.dart';
 
 class LocationService {
   static const double _verificationRadiusMeters = 1000.0; // 1km threshold
@@ -217,6 +218,92 @@ class LocationService {
       );
     } catch (e) {
       dev.log('LocationService: Error in location verification: $e');
+      return LocationVerificationResult(
+        isVerified: false,
+        distanceMeters: null,
+        message: 'Location verification failed',
+      );
+    }
+  }
+
+  /// Verify location against multiple clinics and return the best result
+  static Future<LocationVerificationResult> performMultiClinicLocationVerification(
+    List<DoctorClinic> clinics,
+  ) async {
+    try {
+      dev.log('LocationService: Starting multi-clinic location verification for ${clinics.length} clinics');
+      
+      // Step 1: Check permissions
+      final hasPermission = await requestLocationPermission();
+      if (!hasPermission) {
+        return LocationVerificationResult(
+          isVerified: false,
+          distanceMeters: null,
+          message: 'Location permission denied',
+        );
+      }
+
+      // Step 2: Get current location
+      final position = await getCurrentLocation();
+      if (position == null) {
+        return LocationVerificationResult(
+          isVerified: false,
+          distanceMeters: null,
+          message: 'Unable to get current location',
+        );
+      }
+
+      // Step 3: Check against all clinics
+      LocationVerificationResult? bestResult;
+      double? closestDistance;
+      String? closestClinicName;
+      
+      for (final clinic in clinics) {
+        if (clinic.latitude != null && clinic.longitude != null) {
+          final result = verifyLocation(
+            position.latitude,
+            position.longitude,
+            clinic.latitude,
+            clinic.longitude,
+          );
+          
+          // If this clinic is verified, return immediately
+          if (result.isVerified) {
+            dev.log('LocationService: Verified at clinic: ${clinic.clinicName}');
+            return LocationVerificationResult(
+              isVerified: true,
+              distanceMeters: result.distanceMeters,
+              message: 'Location verified at ${clinic.clinicName} (${result.distanceMeters?.toStringAsFixed(0)}m away)',
+            );
+          }
+          
+          // Track the closest clinic for fallback message
+          if (result.distanceMeters != null) {
+            if (closestDistance == null || result.distanceMeters! < closestDistance) {
+              closestDistance = result.distanceMeters;
+              closestClinicName = clinic.clinicName;
+              bestResult = result;
+            }
+          }
+        }
+      }
+      
+      // No clinic was within verification range
+      if (bestResult != null && closestDistance != null && closestClinicName != null) {
+        return LocationVerificationResult(
+          isVerified: false,
+          distanceMeters: closestDistance,
+          message: 'You are ${_formatDistance(closestDistance)} away from the closest clinic ($closestClinicName)',
+        );
+      } else {
+        return LocationVerificationResult(
+          isVerified: false,
+          distanceMeters: null,
+          message: 'No clinic locations available for verification',
+        );
+      }
+    } catch (e) {
+      dev.log('LocationService: Error in multi-clinic location verification: $e');
       return LocationVerificationResult(
         isVerified: false,
         distanceMeters: null,

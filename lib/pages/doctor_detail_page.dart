@@ -462,7 +462,11 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
           children: visitHistory.map((visit) => 
             SizedBox(
               width: (MediaQuery.of(context).size.width - 64) / 2,
-              child: _VisitCard(visit: visit, isTablet: true),
+              child: _VisitCard(
+                visit: visit, 
+                isTablet: true,
+                onEdit: () => _showEditVisitModal(visit),
+              ),
             )
           ).toList(),
         )
@@ -473,7 +477,11 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
           separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final visit = visitHistory[index];
-            return _VisitCard(visit: visit, isTablet: false);
+            return _VisitCard(
+              visit: visit, 
+              isTablet: false,
+              onEdit: () => _showEditVisitModal(visit),
+            );
           },
         );
   }
@@ -718,6 +726,25 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
     );
   }
 
+  void _showEditVisitModal(MrVisitLog visitLog) {
+    final state = context.read<DoctorDetailCubit>().state;
+    if (state is DoctorDetailLoaded) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => NewVisitLogModal.edit(
+          doctorId: widget.doctorId,
+          doctor: state.doctor,
+          existingVisitLog: visitLog,
+          onSuccess: () {
+            context.read<DoctorDetailCubit>().refreshVisitHistory(widget.doctorId);
+          },
+        ),
+      );
+    }
+  }
+
   void _showEditDoctorModal(Doctor doctor) {
     showDialog(
       context: context,
@@ -785,8 +812,9 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
 class _VisitCard extends StatelessWidget {
   final MrVisitLog visit;
   final bool isTablet;
+  final VoidCallback? onEdit;
 
-  const _VisitCard({required this.visit, this.isTablet = false});
+  const _VisitCard({required this.visit, this.isTablet = false, this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -845,20 +873,42 @@ class _VisitCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF059669).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'Done',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF059669),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF059669).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'Done',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF059669),
+                      ),
+                    ),
                   ),
-                ),
+                  if (onEdit != null) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: onEdit,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Icon(
+                          Icons.edit_rounded,
+                          size: 14,
+                          color: Color(0xFF2563EB),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

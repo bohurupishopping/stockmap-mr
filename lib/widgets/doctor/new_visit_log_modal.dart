@@ -9,18 +9,32 @@ import '../../models/doctor_models.dart';
 import '../../models/product_models.dart';
 import '../../services/location_service.dart';
 import '../../services/product_service.dart';
+import '../../services/doctor_service.dart';
 
 class NewVisitLogModal extends StatefulWidget {
   final String doctorId;
   final Doctor doctor;
+  final MrVisitLog? existingVisitLog; // For editing mode
   final VoidCallback? onSuccess;
 
   const NewVisitLogModal({
     super.key,
     required this.doctorId,
     required this.doctor,
+    this.existingVisitLog,
     this.onSuccess,
   });
+
+  // Helper constructor for editing
+  const NewVisitLogModal.edit({
+    super.key,
+    required this.doctorId,
+    required this.doctor,
+    required this.existingVisitLog,
+    this.onSuccess,
+  });
+
+  bool get isEditMode => existingVisitLog != null;
 
   @override
   State<NewVisitLogModal> createState() => _NewVisitLogModalState();
@@ -64,8 +78,44 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
   void initState() {
     super.initState();
     _visitLogCubit = VisitLogCubit();
-    _startLocationVerification();
+    
+    // If in edit mode, populate the form fields
+    if (widget.isEditMode) {
+      _populateFormFromExistingLog();
+      // Skip location verification in edit mode since location data is already saved
+      _locationResult = LocationVerificationResult(
+        isVerified: widget.existingVisitLog!.isLocationVerified ?? false,
+        distanceMeters: widget.existingVisitLog!.distanceFromClinicMeters,
+        message: widget.existingVisitLog!.isLocationVerified == true 
+            ? 'Location was verified during original visit'
+            : 'Location was not verified during original visit',
+      );
+    } else {
+      _startLocationVerification();
+    }
+    
     _loadProducts();
+  }
+
+  /// Populate form fields from existing visit log
+  void _populateFormFromExistingLog() {
+    final log = widget.existingVisitLog!;
+    
+    _visitDate = log.visitDate;
+    _nextVisitDate = log.nextVisitDate;
+    
+    _feedbackController.text = log.feedbackReceived ?? '';
+    _nextObjectiveController.text = log.nextVisitObjective ?? '';
+    _samplesController.text = log.samplesProvided ?? '';
+    _competitorNotesController.text = log.competitorActivityNotes ?? '';
+    _prescriptionNotesController.text = log.prescriptionPotentialNotes ?? '';
+    
+    // Parse products from the existing log
+    if (log.productsDetailed != null && log.productsDetailed!.isNotEmpty) {
+      _productsController.text = log.productsDetailed!;
+      // Note: We'll need to parse the products and populate _selectedProducts
+      // This might require additional logic depending on how products are stored
+    }
   }
 
   /// Start location verification process
@@ -75,13 +125,24 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
     });
 
     try {
-      final result = await LocationService.performLocationVerification(
-        widget.doctor.latitude,
-        widget.doctor.longitude,
-      );
+      // Get all clinics for this doctor
+      final clinics = await DoctorService.getDoctorClinics(widget.doctorId);
+      
+      LocationVerificationResult? bestResult;
+      
+      if (clinics.isEmpty) {
+        // Fallback to doctor's main location if no clinics are found
+        bestResult = await LocationService.performLocationVerification(
+          widget.doctor.latitude,
+          widget.doctor.longitude,
+        );
+      } else {
+        // Check location against all clinics and find the closest verified one
+        bestResult = await LocationService.performMultiClinicLocationVerification(clinics);
+      }
       
       setState(() {
-        _locationResult = result;
+        _locationResult = bestResult;
         _isVerifyingLocation = false;
       });
     } catch (e) {
@@ -154,13 +215,20 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
             return BlocListener<VisitLogCubit, VisitLogState>(
               listener: (context, state) {
                 if (state is VisitLogSuccess) {
+                  String message;
+                  if (widget.isEditMode) {
+                    message = 'Visit log updated successfully!';
+                  } else {
+                    message = 'Visit logged successfully!';
+                  }
+                  
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Row(
+                      content: Row(
                         children: [
-                          Icon(Icons.check_circle, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Text('Visit logged successfully!'),
+                          const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                          const SizedBox(width: 8),
+                          Text(message),
                         ],
                       ),
                       backgroundColor: _successColor,
@@ -168,6 +236,8 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   );
+                  // Call the onSuccess callback to refresh the visit history
+                  widget.onSuccess?.call();
                   Navigator.of(context).pop(true);
                 } else if (state is VisitLogError) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -240,10 +310,10 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Log New Visit',
-              style: TextStyle(
+              widget.isEditMode ? 'Edit Visit Log' : 'Log New Visit',
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
                 color: _textPrimary,
@@ -251,6 +321,26 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
               ),
             ),
           ),
+          // Delete button for edit mode
+          if (widget.isEditMode) ...
+          [
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _showDeleteConfirmation,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color: _errorColor,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
           Material(
             color: Colors.transparent,
             child: InkWell(
@@ -844,14 +934,14 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Row(
+                        : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.save_outlined, size: 18),
-                              SizedBox(width: 8),
+                              const Icon(Icons.save_outlined, size: 18),
+                              const SizedBox(width: 8),
                               Text(
-                                'Save Visit Log',
-                                style: TextStyle(
+                                widget.isEditMode ? 'Update Visit Log' : 'Save Visit Log',
+                                style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -1002,7 +1092,78 @@ class _NewVisitLogModalState extends State<NewVisitLogModal> {
             : null,
       );
 
-      _visitLogCubit.createVisitLog(request);
+      if (widget.isEditMode) {
+        _visitLogCubit.updateVisitLog(widget.existingVisitLog!.id, request);
+      } else {
+        _visitLogCubit.createVisitLog(request);
+      }
     }
+  }
+
+  /// Show delete confirmation dialog
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_outlined, color: _errorColor, size: 24),
+              SizedBox(width: 12),
+              Text(
+                'Delete Visit Log',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: _textPrimary,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Are you sure you want to delete this visit log? This action cannot be undone.',
+            style: TextStyle(
+              fontSize: 14,
+              color: _textSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: _textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _visitLogCubit.deleteVisitLog(widget.existingVisitLog!.id);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _errorColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Delete',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

@@ -156,6 +156,9 @@ class DoctorService {
         'visit_date': request.visitDate.toIso8601String(),
         'products_detailed': request.productsDetailed,
         'feedback_received': request.feedbackReceived,
+        'samples_provided': request.samplesProvided,
+        'competitor_activity_notes': request.competitorActivityNotes,
+        'prescription_potential_notes': request.prescriptionPotentialNotes,
         'next_visit_date': request.nextVisitDate?.toIso8601String(),
         'next_visit_objective': request.nextVisitObjective,
         'is_location_verified': request.isLocationVerified,
@@ -189,6 +192,84 @@ class DoctorService {
       return MrVisitLog.fromJson(response);
     } catch (e) {
       log('DoctorService: Error creating visit log: $e');
+      rethrow;
+    }
+  }
+
+  /// Update an existing visit log
+  static Future<MrVisitLog> updateVisitLog(String visitLogId, CreateVisitLogRequest request) async {
+    try {
+      log('DoctorService: Updating visit log: $visitLogId');
+      
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final visitData = {
+        'visit_date': request.visitDate.toIso8601String(),
+        'products_detailed': request.productsDetailed,
+        'feedback_received': request.feedbackReceived,
+        'samples_provided': request.samplesProvided,
+        'competitor_activity_notes': request.competitorActivityNotes,
+        'prescription_potential_notes': request.prescriptionPotentialNotes,
+        'next_visit_date': request.nextVisitDate?.toIso8601String(),
+        'next_visit_objective': request.nextVisitObjective,
+        // Note: We don't update location verification data as per requirements
+      };
+
+      final response = await _supabase
+          .from('mr_visit_logs')
+          .update(visitData)
+          .eq('id', visitLogId)
+          .eq('mr_user_id', userId) // Ensure user can only update their own logs
+          .select('''
+            id,
+            mr_user_id,
+            doctor_id,
+            visit_date,
+            products_detailed,
+            feedback_received,
+            samples_provided,
+            competitor_activity_notes,
+            prescription_potential_notes,
+            next_visit_date,
+            next_visit_objective,
+            linked_sale_order_id,
+            is_location_verified,
+            distance_from_clinic_meters,
+            created_at
+          ''')
+          .single();
+
+      log('DoctorService: Successfully updated visit log');
+      
+      return MrVisitLog.fromJson(response);
+    } catch (e) {
+      log('DoctorService: Error updating visit log: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete a visit log
+  static Future<void> deleteVisitLog(String visitLogId) async {
+    try {
+      log('DoctorService: Deleting visit log: $visitLogId');
+      
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      await _supabase
+          .from('mr_visit_logs')
+          .delete()
+          .eq('id', visitLogId)
+          .eq('mr_user_id', userId); // Ensure user can only delete their own logs
+
+      log('DoctorService: Successfully deleted visit log');
+    } catch (e) {
+      log('DoctorService: Error deleting visit log: $e');
       rethrow;
     }
   }
