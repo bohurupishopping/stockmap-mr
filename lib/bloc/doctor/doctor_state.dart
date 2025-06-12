@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../models/doctor_models.dart';
+import '../../models/doctor_clinic_models.dart';
 
 part 'doctor_state.freezed.dart';
 
@@ -28,6 +29,7 @@ class DoctorDetailState with _$DoctorDetailState {
   const factory DoctorDetailState.loaded({
     required Doctor doctor,
     required List<MrVisitLog> visitHistory,
+    @Default([]) List<DoctorClinic> clinics,
   }) = DoctorDetailLoaded;
   
   const factory DoctorDetailState.error({

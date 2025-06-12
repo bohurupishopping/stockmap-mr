@@ -1,5 +1,8 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:developer' as dev;
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class LocationService {
   static const double _verificationRadiusMeters = 1000.0; // 1km threshold
@@ -56,6 +59,70 @@ class LocationService {
       dev.log('LocationService: Error getting current location: $e');
       return null;
     }
+  }
+
+  /// Get address details from coordinates using reverse geocoding
+  static Future<AddressDetails?> getAddressFromCoordinates(
+    double latitude,
+    double longitude,
+  ) async {
+    try {
+      dev.log('LocationService: Getting address for coordinates: $latitude, $longitude');
+      
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        latitude,
+        longitude,
+      );
+      
+      if (placemarks.isNotEmpty) {
+        final placemark = placemarks.first;
+        
+        final addressDetails = AddressDetails(
+          street: placemark.street ?? '',
+          subLocality: placemark.subLocality ?? '',
+          locality: placemark.locality ?? '',
+          administrativeArea: placemark.administrativeArea ?? '',
+          postalCode: placemark.postalCode ?? '',
+          country: placemark.country ?? '',
+          formattedAddress: _formatAddress(placemark),
+        );
+        
+        dev.log('LocationService: Address found: ${addressDetails.formattedAddress}');
+        return addressDetails;
+      } else {
+        dev.log('LocationService: No address found for coordinates');
+        return null;
+      }
+    } catch (e) {
+      dev.log('LocationService: Error getting address from coordinates: $e');
+      return null;
+    }
+  }
+
+  /// Format placemark into a readable address string
+  static String _formatAddress(Placemark placemark) {
+    List<String> addressParts = [];
+    
+    if (placemark.street?.isNotEmpty == true) {
+      addressParts.add(placemark.street!);
+    }
+    if (placemark.subLocality?.isNotEmpty == true) {
+      addressParts.add(placemark.subLocality!);
+    }
+    if (placemark.locality?.isNotEmpty == true) {
+      addressParts.add(placemark.locality!);
+    }
+    if (placemark.administrativeArea?.isNotEmpty == true) {
+      addressParts.add(placemark.administrativeArea!);
+    }
+    if (placemark.postalCode?.isNotEmpty == true) {
+      addressParts.add(placemark.postalCode!);
+    }
+    if (placemark.country?.isNotEmpty == true) {
+      addressParts.add(placemark.country!);
+    }
+    
+    return addressParts.join(', ');
   }
 
   /// Calculate distance between two points using Haversine formula
@@ -173,5 +240,30 @@ class LocationVerificationResult {
   @override
   String toString() {
     return 'LocationVerificationResult(isVerified: $isVerified, distanceMeters: $distanceMeters, message: $message)';
+  }
+}
+
+class AddressDetails {
+  final String street;
+  final String subLocality;
+  final String locality;
+  final String administrativeArea;
+  final String postalCode;
+  final String country;
+  final String formattedAddress;
+
+  const AddressDetails({
+    required this.street,
+    required this.subLocality,
+    required this.locality,
+    required this.administrativeArea,
+    required this.postalCode,
+    required this.country,
+    required this.formattedAddress,
+  });
+
+  @override
+  String toString() {
+    return 'AddressDetails(formattedAddress: $formattedAddress)';
   }
 }

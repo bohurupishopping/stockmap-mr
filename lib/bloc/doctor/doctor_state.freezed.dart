@@ -344,7 +344,7 @@ String toString() {
 
 
 class DoctorDetailLoaded implements DoctorDetailState {
-  const DoctorDetailLoaded({required this.doctor, required final  List<MrVisitLog> visitHistory}): _visitHistory = visitHistory;
+  const DoctorDetailLoaded({required this.doctor, required final  List<MrVisitLog> visitHistory, final  List<DoctorClinic> clinics = const []}): _visitHistory = visitHistory,_clinics = clinics;
   
 
  final  Doctor doctor;
@@ -353,6 +353,13 @@ class DoctorDetailLoaded implements DoctorDetailState {
   if (_visitHistory is EqualUnmodifiableListView) return _visitHistory;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_visitHistory);
+}
+
+ final  List<DoctorClinic> _clinics;
+@JsonKey() List<DoctorClinic> get clinics {
+  if (_clinics is EqualUnmodifiableListView) return _clinics;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_clinics);
 }
 
 
@@ -366,16 +373,16 @@ $DoctorDetailLoadedCopyWith<DoctorDetailLoaded> get copyWith => _$DoctorDetailLo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DoctorDetailLoaded&&(identical(other.doctor, doctor) || other.doctor == doctor)&&const DeepCollectionEquality().equals(other._visitHistory, _visitHistory));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DoctorDetailLoaded&&(identical(other.doctor, doctor) || other.doctor == doctor)&&const DeepCollectionEquality().equals(other._visitHistory, _visitHistory)&&const DeepCollectionEquality().equals(other._clinics, _clinics));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,doctor,const DeepCollectionEquality().hash(_visitHistory));
+int get hashCode => Object.hash(runtimeType,doctor,const DeepCollectionEquality().hash(_visitHistory),const DeepCollectionEquality().hash(_clinics));
 
 @override
 String toString() {
-  return 'DoctorDetailState.loaded(doctor: $doctor, visitHistory: $visitHistory)';
+  return 'DoctorDetailState.loaded(doctor: $doctor, visitHistory: $visitHistory, clinics: $clinics)';
 }
 
 
@@ -386,7 +393,7 @@ abstract mixin class $DoctorDetailLoadedCopyWith<$Res> implements $DoctorDetailS
   factory $DoctorDetailLoadedCopyWith(DoctorDetailLoaded value, $Res Function(DoctorDetailLoaded) _then) = _$DoctorDetailLoadedCopyWithImpl;
 @useResult
 $Res call({
- Doctor doctor, List<MrVisitLog> visitHistory
+ Doctor doctor, List<MrVisitLog> visitHistory, List<DoctorClinic> clinics
 });
 
 
@@ -403,11 +410,12 @@ class _$DoctorDetailLoadedCopyWithImpl<$Res>
 
 /// Create a copy of DoctorDetailState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? doctor = null,Object? visitHistory = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? doctor = null,Object? visitHistory = null,Object? clinics = null,}) {
   return _then(DoctorDetailLoaded(
 doctor: null == doctor ? _self.doctor : doctor // ignore: cast_nullable_to_non_nullable
 as Doctor,visitHistory: null == visitHistory ? _self._visitHistory : visitHistory // ignore: cast_nullable_to_non_nullable
-as List<MrVisitLog>,
+as List<MrVisitLog>,clinics: null == clinics ? _self._clinics : clinics // ignore: cast_nullable_to_non_nullable
+as List<DoctorClinic>,
   ));
 }
 

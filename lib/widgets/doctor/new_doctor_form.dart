@@ -3,15 +3,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/doctor_models.dart';
-import '../../services/location_service.dart';
+import 'edit_clinic_modal.dart';
 
 class NewDoctorForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
+  final Function(String doctorId)? onDoctorCreated; // Callback when doctor is created successfully
   final VoidCallback? onCancel;
 
   const NewDoctorForm({
     super.key,
     required this.onSubmit,
+    this.onDoctorCreated,
     this.onCancel,
   });
 
@@ -22,18 +24,35 @@ class NewDoctorForm extends StatefulWidget {
 class _NewDoctorFormState extends State<NewDoctorForm> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
-  final _specialtyController = TextEditingController();
-  final _clinicAddressController = TextEditingController();
   final _phoneNumberController = TextEditingController();
   final _emailController = TextEditingController();
-  final _latitudeController = TextEditingController();
-  final _longitudeController = TextEditingController();
   
   DateTime? _dateOfBirth;
   DateTime? _anniversaryDate;
   DoctorTier? _selectedTier;
+  String? _selectedSpecialty;
   bool _isLoading = false;
-  bool _isGettingLocation = false;
+
+  // Predefined specialty options
+  static const List<String> _specialtyOptions = [
+    'Cardiologist',
+    'Dermatologist',
+    'Endocrinologist',
+    'Gastroenterologist',
+    'General Practitioner',
+    'Gynecologist',
+    'Neurologist',
+    'Oncologist',
+    'Ophthalmologist',
+    'Orthopedic Surgeon',
+    'Pediatrician',
+    'Psychiatrist',
+    'Pulmonologist',
+    'Radiologist',
+    'Surgeon',
+    'Urologist',
+    'Other',
+  ];
 
   // Modern color scheme
   static const Color _primaryColor = Color(0xFF2563EB); // Modern blue
@@ -46,14 +65,15 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
   static const Color _errorColor = Color(0xFFDC2626); // Modern red
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
     _fullNameController.dispose();
-    _specialtyController.dispose();
-    _clinicAddressController.dispose();
     _phoneNumberController.dispose();
     _emailController.dispose();
-    _latitudeController.dispose();
-    _longitudeController.dispose();
     super.dispose();
   }
 
@@ -97,8 +117,6 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
                       _buildContactInfoSection(isSmallScreen),
                       SizedBox(height: isSmallScreen ? 20 : 28),
                       _buildPersonalInfoSection(isSmallScreen),
-                      SizedBox(height: isSmallScreen ? 20 : 28),
-                      _buildLocationSection(isSmallScreen),
                       SizedBox(height: isSmallScreen ? 16 : 24),
                     ],
                   ),
@@ -190,13 +208,7 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
           },
         ),
         const SizedBox(height: 16),
-        _buildTextField(
-          controller: _specialtyController,
-          label: 'Specialty',
-          hint: 'e.g., Cardiologist, Pediatrician',
-          icon: Icons.medical_services_outlined,
-          textCapitalization: TextCapitalization.words,
-        ),
+        _buildSpecialtyDropdown(),
         const SizedBox(height: 16),
         _buildTierDropdown(),
       ],
@@ -239,15 +251,6 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
             }
             return null;
           },
-        ),
-        const SizedBox(height: 16),
-        _buildTextField(
-          controller: _clinicAddressController,
-          label: 'Clinic Address',
-          hint: 'Enter clinic address',
-          icon: Icons.location_on_outlined,
-          maxLines: 2,
-          textCapitalization: TextCapitalization.words,
         ),
       ],
     );
@@ -302,113 +305,8 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
     );
   }
 
-  Widget _buildLocationSection(bool isSmallScreen) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildSectionTitle('Location (Optional)', Icons.my_location_outlined),
-            ),
-            _buildGpsButton(),
-          ],
-        ),
-        SizedBox(height: isSmallScreen ? 12 : 16),
-        isSmallScreen
-            ? Column(
-                children: [
-                  _buildTextField(
-                    controller: _latitudeController,
-                    label: 'Latitude',
-                    hint: '19.0760',
-                    icon: Icons.my_location_outlined,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
-                    ],
-                    validator: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        final lat = double.tryParse(value);
-                        if (lat == null || lat < -90 || lat > 90) {
-                          return 'Invalid latitude';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTextField(
-                    controller: _longitudeController,
-                    label: 'Longitude',
-                    hint: '72.8777',
-                    icon: Icons.place_outlined,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
-                    ],
-                    validator: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        final lng = double.tryParse(value);
-                        if (lng == null || lng < -180 || lng > 180) {
-                          return 'Invalid longitude';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _latitudeController,
-                      label: 'Latitude',
-                      hint: '19.0760',
-                      icon: Icons.my_location_outlined,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
-                      ],
-                      validator: (value) {
-                        if (value != null && value.isNotEmpty) {
-                          final lat = double.tryParse(value);
-                          if (lat == null || lat < -90 || lat > 90) {
-                            return 'Invalid latitude';
-                          }
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _longitudeController,
-                      label: 'Longitude',
-                      hint: '72.8777',
-                      icon: Icons.place_outlined,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*')),
-                      ],
-                      validator: (value) {
-                        if (value != null && value.isNotEmpty) {
-                          final lng = double.tryParse(value);
-                          if (lng == null || lng < -180 || lng > 180) {
-                            return 'Invalid longitude';
-                          }
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-      ],
-    );
-  }
+
+
 
   Widget _buildSectionTitle(String title, IconData icon) {
     return Row(
@@ -432,106 +330,8 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
     );
   }
 
-  Widget _buildGpsButton() {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: _isGettingLocation ? _primaryColor : _borderColor,
-          width: 1,
-        ),
-      ),
-      child: Material(
-        color: _isGettingLocation 
-            ? _primaryColor.withOpacity(0.1) 
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
-          onTap: _isGettingLocation ? null : _getCurrentLocation,
-          borderRadius: BorderRadius.circular(10),
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: _isGettingLocation
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
-                    ),
-                  )
-                : Icon(
-                    Icons.gps_fixed_rounded,
-                    size: 16,
-                    color: _primaryColor,
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
 
-  Future<void> _getCurrentLocation() async {
-    setState(() {
-      _isGettingLocation = true;
-    });
 
-    try {
-      // Request location permission
-      final hasPermission = await LocationService.requestLocationPermission();
-      if (!hasPermission) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Location permission is required to get current location'),
-              backgroundColor: _errorColor,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Get current location
-      final position = await LocationService.getCurrentLocation();
-      if (position != null) {
-        _latitudeController.text = position.latitude.toStringAsFixed(6);
-        _longitudeController.text = position.longitude.toStringAsFixed(6);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Location updated successfully'),
-              backgroundColor: _successColor,
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to get current location. Please try again.'),
-              backgroundColor: _errorColor,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error getting location: $e'),
-            backgroundColor: _errorColor,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isGettingLocation = false;
-        });
-      }
-    }
-  }
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -700,6 +500,59 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
       onChanged: (value) {
         setState(() {
           _selectedTier = value;
+        });
+      },
+    );
+  }
+
+  Widget _buildSpecialtyDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedSpecialty,
+      style: const TextStyle(
+        fontSize: 14,
+        color: _textPrimary,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        labelText: 'Specialty',
+        prefixIcon: const Icon(Icons.medical_services_outlined, size: 18, color: _textSecondary),
+        labelStyle: const TextStyle(
+          color: _textSecondary,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        filled: true,
+        fillColor: _surfaceColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _borderColor, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _borderColor, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _primaryColor, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      items: _specialtyOptions.map((specialty) {
+        return DropdownMenuItem(
+          value: specialty,
+          child: Text(
+            specialty,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: _textPrimary,
+            ),
+          ),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedSpecialty = value;
         });
       },
     );
@@ -877,18 +730,14 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
       _isLoading = true;
     });
 
-    // Prepare the data
+    // Prepare the doctor data for the doctors table
     final doctorData = <String, dynamic>{
       'full_name': _fullNameController.text.trim(),
     };
 
     // Add optional fields only if they have values
-    if (_specialtyController.text.trim().isNotEmpty) {
-      doctorData['specialty'] = _specialtyController.text.trim();
-    }
-    
-    if (_clinicAddressController.text.trim().isNotEmpty) {
-      doctorData['clinic_address'] = _clinicAddressController.text.trim();
+    if (_selectedSpecialty != null && _selectedSpecialty!.isNotEmpty) {
+      doctorData['specialty'] = _selectedSpecialty;
     }
     
     if (_phoneNumberController.text.trim().isNotEmpty) {
@@ -910,16 +759,41 @@ class _NewDoctorFormState extends State<NewDoctorForm> {
     if (_selectedTier != null) {
       doctorData['tier'] = _selectedTier!.name.toUpperCase();
     }
-    
-    if (_latitudeController.text.trim().isNotEmpty) {
-      doctorData['latitude'] = double.tryParse(_latitudeController.text.trim());
-    }
-    
-    if (_longitudeController.text.trim().isNotEmpty) {
-      doctorData['longitude'] = double.tryParse(_longitudeController.text.trim());
-    }
 
-    // Call the submit callback
+    // Call the submit callback with doctor data only
     widget.onSubmit(doctorData);
+  }
+
+  // Method to show clinic modal after doctor creation
+  void showClinicModal(String doctorId) {
+    // Reset loading state
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => EditClinicModal(
+        doctorId: doctorId,
+        clinic: null, // null for adding new clinic
+        onClinicUpdated: () {
+          // Close the clinic modal and then close the doctor form
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  // Method to reset loading state in case of error
+  void resetLoadingState() {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 }

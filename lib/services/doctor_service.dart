@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/doctor_models.dart';
+import '../models/doctor_clinic_models.dart';
 
 class DoctorService {
   static final _supabase = Supabase.instance.client;
@@ -305,6 +306,169 @@ class DoctorService {
       return doctor;
     } catch (e) {
       log('DoctorService: Error creating doctor: $e');
+      rethrow;
+    }
+  }
+
+  /// Get all clinics for a specific doctor
+  static Future<List<DoctorClinic>> getDoctorClinics(String doctorId) async {
+    try {
+      log('DoctorService: Fetching clinics for doctor: $doctorId');
+      
+      final response = await _supabase
+          .from('doctor_clinics')
+          .select('''
+            id,
+            doctor_id,
+            clinic_name,
+            latitude,
+            longitude,
+            is_primary,
+            created_at,
+            updated_at
+          ''')
+          .eq('doctor_id', doctorId)
+          .order('is_primary', ascending: false)
+          .order('clinic_name');
+
+      log('DoctorService: Received ${response.length} clinics');
+      
+      return (response as List<dynamic>)
+          .map((json) => DoctorClinic.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      log('DoctorService: Error fetching doctor clinics: $e');
+      rethrow;
+    }
+  }
+
+  /// Create a new clinic for a doctor
+  static Future<DoctorClinic> createDoctorClinic(CreateDoctorClinicRequest request) async {
+    try {
+      log('DoctorService: Creating new clinic for doctor: ${request.doctorId}');
+      
+      final clinicData = {
+        'doctor_id': request.doctorId,
+        'clinic_name': request.clinicName,
+        'latitude': request.latitude,
+        'longitude': request.longitude,
+        'is_primary': request.isPrimary,
+      };
+
+      final response = await _supabase
+          .from('doctor_clinics')
+          .insert(clinicData)
+          .select('''
+            id,
+            doctor_id,
+            clinic_name,
+            latitude,
+            longitude,
+            is_primary,
+            created_at,
+            updated_at
+          ''')
+          .single();
+
+      log('DoctorService: Successfully created clinic');
+      
+      return DoctorClinic.fromJson(response);
+    } catch (e) {
+      log('DoctorService: Error creating clinic: $e');
+      rethrow;
+    }
+  }
+
+  /// Update an existing clinic
+  static Future<DoctorClinic> updateDoctorClinic(String clinicId, UpdateDoctorClinicRequest request) async {
+    try {
+      log('DoctorService: Updating clinic: $clinicId');
+      
+      final updateData = <String, dynamic>{};
+      if (request.clinicName != null) updateData['clinic_name'] = request.clinicName;
+      if (request.latitude != null) updateData['latitude'] = request.latitude;
+      if (request.longitude != null) updateData['longitude'] = request.longitude;
+      if (request.isPrimary != null) updateData['is_primary'] = request.isPrimary;
+      
+      updateData['updated_at'] = DateTime.now().toIso8601String();
+
+      final response = await _supabase
+          .from('doctor_clinics')
+          .update(updateData)
+          .eq('id', clinicId)
+          .select('''
+            id,
+            doctor_id,
+            clinic_name,
+            latitude,
+            longitude,
+            is_primary,
+            created_at,
+            updated_at
+          ''')
+          .single();
+
+      log('DoctorService: Successfully updated clinic');
+      
+      return DoctorClinic.fromJson(response);
+    } catch (e) {
+      log('DoctorService: Error updating clinic: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete a clinic
+  static Future<void> deleteDoctorClinic(String clinicId) async {
+    try {
+      log('DoctorService: Deleting clinic: $clinicId');
+      
+      await _supabase
+          .from('doctor_clinics')
+          .delete()
+          .eq('id', clinicId);
+
+      log('DoctorService: Successfully deleted clinic');
+    } catch (e) {
+      log('DoctorService: Error deleting clinic: $e');
+      rethrow;
+    }
+  }
+
+  /// Update a doctor's basic information
+  static Future<Doctor> updateDoctor(String doctorId, Map<String, dynamic> updateData) async {
+    try {
+      log('DoctorService: Updating doctor: $doctorId');
+      
+      updateData['updated_at'] = DateTime.now().toIso8601String();
+
+      final response = await _supabase
+          .from('doctors')
+          .update(updateData)
+          .eq('id', doctorId)
+          .select('''
+            id,
+            full_name,
+            specialty,
+            clinic_address,
+            phone_number,
+            email,
+            date_of_birth,
+            anniversary_date,
+            tier,
+            latitude,
+            longitude,
+            is_active,
+            created_at,
+            updated_at,
+            created_by
+          ''')
+          .single();
+
+      log('DoctorService: Successfully updated doctor');
+      
+      return Doctor.fromJson(response);
+    } catch (e) {
+      log('DoctorService: Error updating doctor: $e');
       rethrow;
     }
   }

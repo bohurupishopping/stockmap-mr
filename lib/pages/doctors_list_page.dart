@@ -446,12 +446,12 @@ class _DoctorsListPageState extends State<DoctorsListPage>
       barrierDismissible: false,
       builder: (dialogContext) => NewDoctorForm(
         onSubmit: (doctorData) async {
-          Navigator.of(dialogContext).pop();
-          
           try {
-            await context.read<DoctorCubit>().createDoctor(doctorData);
+            // Create the doctor and get the created doctor data with ID
+            final createdDoctor = await context.read<DoctorCubit>().createDoctor(doctorData);
             
-            if (mounted) {
+            if (mounted && createdDoctor != null) {
+              // Show success message
               // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -460,7 +460,7 @@ class _DoctorsListPageState extends State<DoctorsListPage>
                       Icon(Icons.check_circle_rounded, color: Colors.white),
                       SizedBox(width: 8),
                       Text(
-                        'Doctor added successfully!',
+                        'Doctor added successfully! Redirecting to doctor profile.',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -473,6 +473,10 @@ class _DoctorsListPageState extends State<DoctorsListPage>
                   margin: const EdgeInsets.all(16),
                 ),
               );
+              
+              // Navigate to doctor detail page
+              // ignore: use_build_context_synchronously
+              context.go('/doctors/${createdDoctor.id}');
             }
           } catch (e) {
             if (mounted) {
@@ -506,6 +510,8 @@ class _DoctorsListPageState extends State<DoctorsListPage>
       ),
     );
   }
+
+
 
 }
 

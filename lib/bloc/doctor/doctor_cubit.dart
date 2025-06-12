@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../models/doctor_models.dart';
 import '../../services/doctor_service.dart';
 import 'doctor_state.dart';
 
@@ -54,7 +55,7 @@ class DoctorCubit extends Cubit<DoctorState> {
   }
 
   /// Create a new doctor
-  Future<void> createDoctor(Map<String, dynamic> doctorData) async {
+  Future<Doctor?> createDoctor(Map<String, dynamic> doctorData) async {
     try {
       log('DoctorCubit: Creating new doctor');
       emit(const DoctorState.loading());
@@ -65,9 +66,12 @@ class DoctorCubit extends Cubit<DoctorState> {
       
       // Reload the doctors list to include the new doctor
       await loadDoctors();
+      
+      return doctor;
     } catch (e) {
       log('DoctorCubit: Error creating doctor: $e');
       emit(DoctorState.error(message: e.toString()));
+      rethrow; // Re-throw to let the UI handle the error
     }
   }
 }
