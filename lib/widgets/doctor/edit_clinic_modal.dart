@@ -28,6 +28,8 @@ class _EditClinicModalState extends State<EditClinicModal> {
   
   bool _isPrimary = false;
   bool _isLoading = false;
+  AddressDetails? _addressDetails;
+  bool _isLoadingAddress = false;
 
   bool get isEditing => widget.clinic != null;
 
@@ -43,24 +45,71 @@ class _EditClinicModalState extends State<EditClinicModal> {
     );
     _isPrimary = widget.clinic?.isPrimary ?? false;
     
+    // Add listeners to coordinate fields to update address when changed
+    _latitudeController.addListener(_onCoordinatesChanged);
+    _longitudeController.addListener(_onCoordinatesChanged);
+    
     // Auto-fetch location for new clinics
     if (!isEditing) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _fetchCurrentLocation();
       });
+    } else {
+      // Fetch address for existing clinic coordinates
+      if (widget.clinic?.latitude != null && widget.clinic?.longitude != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _fetchAddressFromCoordinates(widget.clinic!.latitude!, widget.clinic!.longitude!);
+        });
+      }
     }
   }
 
   @override
   void dispose() {
+    _latitudeController.removeListener(_onCoordinatesChanged);
+    _longitudeController.removeListener(_onCoordinatesChanged);
     _clinicNameController.dispose();
     _latitudeController.dispose();
     _longitudeController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchCurrentLocation() async {
+  void _onCoordinatesChanged() {
+    final latText = _latitudeController.text.trim();
+    final lonText = _longitudeController.text.trim();
     
+    if (latText.isNotEmpty && lonText.isNotEmpty) {
+      final lat = double.tryParse(latText);
+      final lon = double.tryParse(lonText);
+      
+      if (lat != null && lon != null && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+        // Debounce the address fetching to avoid too many API calls
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted && 
+              _latitudeController.text.trim() == latText && 
+              _longitudeController.text.trim() == lonText) {
+            _fetchAddressFromCoordinates(lat, lon);
+          }
+        });
+      } else {
+        // Clear address if coordinates are invalid
+        if (mounted) {
+          setState(() {
+            _addressDetails = null;
+          });
+        }
+      }
+    } else {
+      // Clear address if coordinates are empty
+      if (mounted) {
+        setState(() {
+          _addressDetails = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchCurrentLocation() async {
     try {
       // Request location permission
       final hasPermission = await LocationService.requestLocationPermission();
@@ -81,6 +130,9 @@ class _EditClinicModalState extends State<EditClinicModal> {
       if (position != null) {
         _latitudeController.text = position.latitude.toStringAsFixed(6);
         _longitudeController.text = position.longitude.toStringAsFixed(6);
+        
+        // Fetch address details for the current location
+        await _fetchAddressFromCoordinates(position.latitude, position.longitude);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -109,8 +161,30 @@ class _EditClinicModalState extends State<EditClinicModal> {
           ),
         );
       }
-    } finally {
+    }
+  }
+
+  Future<void> _fetchAddressFromCoordinates(double latitude, double longitude) async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingAddress = true;
+    });
+
+    try {
+      final addressDetails = await LocationService.getAddressFromCoordinates(latitude, longitude);
       if (mounted) {
+        setState(() {
+          _addressDetails = addressDetails;
+          _isLoadingAddress = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _addressDetails = null;
+          _isLoadingAddress = false;
+        });
       }
     }
   }
@@ -258,7 +332,77 @@ class _EditClinicModalState extends State<EditClinicModal> {
                                   ),
                                 ),
                               ],
-                            )
+                            ),
+                            // Address display section
+                            if (_isLoadingAddress || _addressDetails != null) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: _isLoadingAddress
+                                    ? const Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
+                                            ),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Fetching address...',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Color(0xFF64748B),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : _addressDetails != null
+                                        ? Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.place_rounded,
+                                                    size: 16,
+                                                    color: Color(0xFF059669),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  const Text(
+                                                    'Address:',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w500,
+                                                      color: Color(0xFF1E293B),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                _addressDetails!.formattedAddress.isNotEmpty
+                                                    ? _addressDetails!.formattedAddress
+                                                    : 'Address not available',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Color(0xFF64748B),
+                                                  height: 1.4,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : const SizedBox.shrink(),
+                              ),
+                            ]
                           ],
                         ),
                       ),

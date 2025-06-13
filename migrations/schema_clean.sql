@@ -25,6 +25,28 @@ CREATE SCHEMA public;
 
 
 --
+-- Name: mr_payment_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.mr_payment_status AS ENUM (
+    'Pending',
+    'Paid',
+    'Partial'
+);
+
+
+--
+-- Name: target_period_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.target_period_type AS ENUM (
+    'Monthly',
+    'Quarterly',
+    'Yearly'
+);
+
+
+--
 -- Name: user_role; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -68,6 +90,72 @@ BEGIN
     AND transaction_date <= p_report_date;
 
     RETURN GREATEST(0, v_closing_stock);
+END;
+$$;
+
+
+--
+-- Name: create_mr_sale(text, jsonb, numeric, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.create_mr_sale(p_customer_name text, p_items jsonb, p_total_amount numeric, p_notes text DEFAULT ''::text) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    v_order_id UUID;
+    v_mr_user_id UUID;
+    v_item JSONB;
+BEGIN
+    -- Get the current user's ID (must be an MR)
+    SELECT user_id INTO v_mr_user_id 
+    FROM public.profiles 
+    WHERE user_id = auth.uid() AND role = 'mr';
+    
+    IF v_mr_user_id IS NULL THEN
+        RAISE EXCEPTION 'User must be an MR to create sales orders';
+    END IF;
+
+    -- Create the sales order header
+    INSERT INTO public.mr_sales_orders (
+        mr_user_id,
+        customer_name,
+        total_amount,
+        notes
+    ) VALUES (
+        v_mr_user_id,
+        p_customer_name,
+        p_total_amount,
+        p_notes
+    ) RETURNING id INTO v_order_id;
+
+    -- Insert each item
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+    LOOP
+        INSERT INTO public.mr_sales_order_items (
+            order_id,
+            product_id,
+            batch_id,
+            quantity_strips_sold,
+            price_per_strip
+        ) VALUES (
+            v_order_id,
+            (v_item->>'product_id')::UUID,
+            (v_item->>'batch_id')::UUID,
+            (v_item->>'quantity_strips_sold')::INTEGER,
+            (v_item->>'price_per_strip')::DECIMAL(10,2)
+        );
+        
+        -- Update stock by reducing the quantity sold
+        -- This assumes there's a stock tracking mechanism
+        -- You may need to adjust this based on your stock management system
+        UPDATE public.mr_stock_summary 
+        SET current_quantity_strips = current_quantity_strips - (v_item->>'quantity_strips_sold')::INTEGER
+        WHERE product_id = (v_item->>'product_id')::UUID 
+        AND batch_id = (v_item->>'batch_id')::UUID
+        AND mr_user_id = v_mr_user_id;
+    END LOOP;
+
+    RETURN v_order_id;
 END;
 $$;
 
@@ -423,6 +511,73 @@ $$;
 
 
 --
+-- Name: recalculate_mr_stock_summary_with_prices(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.recalculate_mr_stock_summary_with_prices() RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  -- Clear existing data
+  TRUNCATE public.mr_stock_summary;
+  
+  -- Recalculate from all transactions with prices
+  INSERT INTO public.mr_stock_summary (
+    mr_user_id,
+    product_id,
+    batch_id,
+    current_quantity_strips,
+    price_per_strip,
+    last_updated_at
+  )
+  WITH mr_transactions AS (
+    SELECT 
+      CASE 
+        WHEN location_type_destination = 'MR' THEN location_id_destination::UUID
+        WHEN location_type_source = 'MR' THEN location_id_source::UUID
+      END as mr_user_id,
+      product_id,
+      batch_id,
+      CASE 
+        WHEN location_type_destination = 'MR' THEN quantity_strips
+        WHEN location_type_source = 'MR' THEN -quantity_strips
+        ELSE 0
+      END as quantity_change,
+      cost_per_strip_at_transaction,
+      transaction_date,
+      created_at
+    FROM public.stock_transactions_view
+    WHERE (location_type_destination = 'MR' OR location_type_source = 'MR')
+    AND (location_id_destination IS NOT NULL OR location_id_source IS NOT NULL)
+  ),
+  stock_calculations AS (
+    SELECT 
+      mr_user_id,
+      product_id,
+      batch_id,
+      SUM(quantity_change) as total_quantity,
+      -- Get the latest cost per strip for this combination
+      (ARRAY_AGG(cost_per_strip_at_transaction ORDER BY transaction_date DESC, created_at DESC))[1] as latest_cost
+    FROM mr_transactions
+    WHERE mr_user_id IS NOT NULL
+    GROUP BY mr_user_id, product_id, batch_id
+    HAVING SUM(quantity_change) > 0
+  )
+  SELECT 
+    mr_user_id,
+    product_id,
+    batch_id,
+    total_quantity,
+    COALESCE(latest_cost, 0.00),
+    now()
+  FROM stock_calculations;
+  
+  RAISE NOTICE 'MR stock summary recalculated with prices successfully';
+END;
+$$;
+
+
+--
 -- Name: recalculate_products_stock_status(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -630,21 +785,23 @@ BEGIN
     
     -- Handle MR as destination (stock increase)
     IF NEW.location_type_destination = 'MR' AND NEW.location_id_destination IS NOT NULL THEN
-      INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, last_updated_at)
-      VALUES (NEW.location_id_destination::UUID, NEW.product_id, NEW.batch_id, NEW.quantity_strips, now())
+      INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, price_per_strip, last_updated_at)
+      VALUES (NEW.location_id_destination::UUID, NEW.product_id, NEW.batch_id, NEW.quantity_strips, NEW.cost_per_strip, now())
       ON CONFLICT (mr_user_id, product_id, batch_id)
       DO UPDATE SET 
         current_quantity_strips = mr_stock_summary.current_quantity_strips + NEW.quantity_strips,
+        price_per_strip = NEW.cost_per_strip,
         last_updated_at = now();
     END IF;
     
     -- Handle MR as source (stock decrease)
     IF NEW.location_type_source = 'MR' AND NEW.location_id_source IS NOT NULL THEN
-      INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, last_updated_at)
-      VALUES (NEW.location_id_source::UUID, NEW.product_id, NEW.batch_id, -NEW.quantity_strips, now())
+      INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, price_per_strip, last_updated_at)
+      VALUES (NEW.location_id_source::UUID, NEW.product_id, NEW.batch_id, -NEW.quantity_strips, NEW.cost_per_strip, now())
       ON CONFLICT (mr_user_id, product_id, batch_id)
       DO UPDATE SET 
         current_quantity_strips = mr_stock_summary.current_quantity_strips - NEW.quantity_strips,
+        price_per_strip = NEW.cost_per_strip,
         last_updated_at = now();
     END IF;
     
@@ -665,21 +822,23 @@ CREATE FUNCTION public.update_mr_stock_summary_from_adjustments() RETURNS trigge
 BEGIN
   -- Handle MR as destination (stock increase)
   IF NEW.location_type_destination = 'MR' AND NEW.location_id_destination IS NOT NULL THEN
-    INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, last_updated_at)
-    VALUES (NEW.location_id_destination::UUID, NEW.product_id, NEW.batch_id, NEW.quantity_strips, now())
+    INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, price_per_strip, last_updated_at)
+    VALUES (NEW.location_id_destination::UUID, NEW.product_id, NEW.batch_id, NEW.quantity_strips, NEW.cost_per_strip, now())
     ON CONFLICT (mr_user_id, product_id, batch_id)
     DO UPDATE SET 
       current_quantity_strips = mr_stock_summary.current_quantity_strips + NEW.quantity_strips,
+      price_per_strip = NEW.cost_per_strip,
       last_updated_at = now();
   END IF;
   
   -- Handle MR as source (stock decrease)
   IF NEW.location_type_source = 'MR' AND NEW.location_id_source IS NOT NULL THEN
-    INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, last_updated_at)
-    VALUES (NEW.location_id_source::UUID, NEW.product_id, NEW.batch_id, -NEW.quantity_strips, now())
+    INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, price_per_strip, last_updated_at)
+    VALUES (NEW.location_id_source::UUID, NEW.product_id, NEW.batch_id, -NEW.quantity_strips, NEW.cost_per_strip, now())
     ON CONFLICT (mr_user_id, product_id, batch_id)
     DO UPDATE SET 
       current_quantity_strips = mr_stock_summary.current_quantity_strips - NEW.quantity_strips,
+      price_per_strip = NEW.cost_per_strip,
       last_updated_at = now();
   END IF;
   
@@ -698,21 +857,23 @@ CREATE FUNCTION public.update_mr_stock_summary_from_sales() RETURNS trigger
 BEGIN
   -- Handle MR as destination (stock increase)
   IF NEW.location_type_destination = 'MR' AND NEW.location_id_destination IS NOT NULL THEN
-    INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, last_updated_at)
-    VALUES (NEW.location_id_destination::UUID, NEW.product_id, NEW.batch_id, NEW.quantity_strips, now())
+    INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, price_per_strip, last_updated_at)
+    VALUES (NEW.location_id_destination::UUID, NEW.product_id, NEW.batch_id, NEW.quantity_strips, NEW.cost_per_strip, now())
     ON CONFLICT (mr_user_id, product_id, batch_id)
     DO UPDATE SET 
       current_quantity_strips = mr_stock_summary.current_quantity_strips + NEW.quantity_strips,
+      price_per_strip = NEW.cost_per_strip,
       last_updated_at = now();
   END IF;
   
   -- Handle MR as source (stock decrease)
   IF NEW.location_type_source = 'MR' AND NEW.location_id_source IS NOT NULL THEN
-    INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, last_updated_at)
-    VALUES (NEW.location_id_source::UUID, NEW.product_id, NEW.batch_id, -NEW.quantity_strips, now())
+    INSERT INTO public.mr_stock_summary (mr_user_id, product_id, batch_id, current_quantity_strips, price_per_strip, last_updated_at)
+    VALUES (NEW.location_id_source::UUID, NEW.product_id, NEW.batch_id, -NEW.quantity_strips, NEW.cost_per_strip, now())
     ON CONFLICT (mr_user_id, product_id, batch_id)
     DO UPDATE SET 
       current_quantity_strips = mr_stock_summary.current_quantity_strips - NEW.quantity_strips,
+      price_per_strip = NEW.cost_per_strip,
       last_updated_at = now();
   END IF;
   
@@ -869,6 +1030,116 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: doctor_clinics; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.doctor_clinics (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    doctor_id uuid NOT NULL,
+    clinic_name text NOT NULL,
+    latitude numeric(9,6),
+    longitude numeric(9,6),
+    is_primary boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: doctors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.doctors (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    full_name text NOT NULL,
+    specialty text,
+    clinic_address text,
+    phone_number text,
+    email text,
+    date_of_birth date,
+    anniversary_date date,
+    tier character(1),
+    latitude numeric(9,6),
+    longitude numeric(9,6),
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    CONSTRAINT doctors_tier_check CHECK ((tier = ANY (ARRAY['A'::bpchar, 'B'::bpchar, 'C'::bpchar])))
+);
+
+
+--
+-- Name: mr_doctor_allotments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mr_doctor_allotments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    mr_user_id uuid NOT NULL,
+    doctor_id uuid NOT NULL
+);
+
+
+--
+-- Name: mr_sales_order_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mr_sales_order_items (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    order_id uuid NOT NULL,
+    product_id uuid NOT NULL,
+    batch_id uuid NOT NULL,
+    quantity_strips_sold integer NOT NULL,
+    price_per_strip numeric(10,2) NOT NULL,
+    line_item_total numeric(10,2) GENERATED ALWAYS AS (((quantity_strips_sold)::numeric * price_per_strip)) STORED,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT mr_sales_order_items_price_per_strip_check CHECK ((price_per_strip >= (0)::numeric)),
+    CONSTRAINT mr_sales_order_items_quantity_strips_sold_check CHECK ((quantity_strips_sold > 0))
+);
+
+
+--
+-- Name: mr_sales_orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mr_sales_orders (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    mr_user_id uuid NOT NULL,
+    customer_name text NOT NULL,
+    order_date timestamp with time zone DEFAULT now() NOT NULL,
+    total_amount numeric(10,2) NOT NULL,
+    payment_status public.mr_payment_status DEFAULT 'Pending'::public.mr_payment_status NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT mr_sales_orders_total_amount_check CHECK ((total_amount >= (0)::numeric))
+);
+
+
+--
+-- Name: mr_sales_targets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mr_sales_targets (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    mr_user_id uuid NOT NULL,
+    period_type public.target_period_type NOT NULL,
+    start_date date NOT NULL,
+    end_date date NOT NULL,
+    target_sales_amount numeric(12,2) NOT NULL,
+    target_tier_bronze numeric(12,2),
+    target_tier_gold numeric(12,2),
+    product_specific_goals jsonb,
+    target_collection_percentage numeric(5,2),
+    is_locked boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT mr_sales_targets_target_collection_percentage_check CHECK (((target_collection_percentage > (0)::numeric) AND (target_collection_percentage <= (100)::numeric))),
+    CONSTRAINT mr_sales_targets_target_sales_amount_check CHECK ((target_sales_amount > (0)::numeric))
+);
+
+
+--
 -- Name: mr_stock_summary; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -878,7 +1149,32 @@ CREATE TABLE public.mr_stock_summary (
     batch_id uuid NOT NULL,
     current_quantity_strips integer DEFAULT 0 NOT NULL,
     last_updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    price_per_strip numeric(10,2) DEFAULT 0.00,
     CONSTRAINT non_negative_quantity CHECK ((current_quantity_strips >= 0))
+);
+
+
+--
+-- Name: mr_visit_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mr_visit_logs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    mr_user_id uuid NOT NULL,
+    doctor_id uuid NOT NULL,
+    visit_date timestamp with time zone DEFAULT now() NOT NULL,
+    products_detailed jsonb,
+    feedback_received text,
+    samples_provided jsonb,
+    competitor_activity_notes text,
+    prescription_potential_notes text,
+    next_visit_date date,
+    next_visit_objective text,
+    linked_sale_order_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    is_location_verified boolean,
+    distance_from_clinic_meters numeric(10,2),
+    clinic_id uuid
 );
 
 
@@ -1256,11 +1552,67 @@ CREATE VIEW public.template_names AS
 
 
 --
+-- Name: doctor_clinics doctor_clinics_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.doctor_clinics
+    ADD CONSTRAINT doctor_clinics_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: doctors doctors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.doctors
+    ADD CONSTRAINT doctors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mr_doctor_allotments mr_doctor_allotments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_doctor_allotments
+    ADD CONSTRAINT mr_doctor_allotments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mr_sales_order_items mr_sales_order_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_sales_order_items
+    ADD CONSTRAINT mr_sales_order_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mr_sales_orders mr_sales_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_sales_orders
+    ADD CONSTRAINT mr_sales_orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mr_sales_targets mr_sales_targets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_sales_targets
+    ADD CONSTRAINT mr_sales_targets_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: mr_stock_summary mr_stock_summary_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.mr_stock_summary
     ADD CONSTRAINT mr_stock_summary_pkey PRIMARY KEY (mr_user_id, product_id, batch_id);
+
+
+--
+-- Name: mr_visit_logs mr_visit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_visit_logs
+    ADD CONSTRAINT mr_visit_logs_pkey PRIMARY KEY (id);
 
 
 --
@@ -1440,6 +1792,22 @@ ALTER TABLE ONLY public.suppliers
 
 
 --
+-- Name: mr_doctor_allotments unique_doctor_allotment; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_doctor_allotments
+    ADD CONSTRAINT unique_doctor_allotment UNIQUE (doctor_id);
+
+
+--
+-- Name: mr_sales_targets unique_mr_target_period; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_sales_targets
+    ADD CONSTRAINT unique_mr_target_period UNIQUE (mr_user_id, start_date);
+
+
+--
 -- Name: product_batches unique_product_batch_number; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1464,6 +1832,48 @@ ALTER TABLE ONLY public.packaging_templates
 
 
 --
+-- Name: idx_mr_sales_order_items_order_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mr_sales_order_items_order_id ON public.mr_sales_order_items USING btree (order_id);
+
+
+--
+-- Name: idx_mr_sales_order_items_product_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mr_sales_order_items_product_id ON public.mr_sales_order_items USING btree (product_id);
+
+
+--
+-- Name: idx_mr_sales_orders_mr_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mr_sales_orders_mr_user_id ON public.mr_sales_orders USING btree (mr_user_id);
+
+
+--
+-- Name: idx_mr_sales_orders_order_date; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mr_sales_orders_order_date ON public.mr_sales_orders USING btree (order_date);
+
+
+--
+-- Name: idx_mr_sales_targets_mr_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mr_sales_targets_mr_user_id ON public.mr_sales_targets USING btree (mr_user_id);
+
+
+--
+-- Name: idx_mr_sales_targets_period; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mr_sales_targets_period ON public.mr_sales_targets USING btree (start_date, end_date);
+
+
+--
 -- Name: idx_mr_stock_summary_mr_user; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1475,6 +1885,13 @@ CREATE INDEX idx_mr_stock_summary_mr_user ON public.mr_stock_summary USING btree
 --
 
 CREATE INDEX idx_mr_stock_summary_product ON public.mr_stock_summary USING btree (product_id);
+
+
+--
+-- Name: idx_mr_visit_logs_location_verified; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_mr_visit_logs_location_verified ON public.mr_visit_logs USING btree (is_location_verified);
 
 
 --
@@ -1772,6 +2189,13 @@ CREATE INDEX idx_stock_transactions_type ON public.stock_transactions USING btre
 
 
 --
+-- Name: one_primary_clinic_per_doctor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX one_primary_clinic_per_doctor ON public.doctor_clinics USING btree (doctor_id) WHERE (is_primary = true);
+
+
+--
 -- Name: stock_transactions trigger_update_products_stock_status; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1884,6 +2308,78 @@ CREATE TRIGGER validate_single_base_unit_trigger BEFORE INSERT OR UPDATE ON publ
 
 
 --
+-- Name: doctor_clinics doctor_clinics_doctor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.doctor_clinics
+    ADD CONSTRAINT doctor_clinics_doctor_id_fkey FOREIGN KEY (doctor_id) REFERENCES public.doctors(id) ON DELETE CASCADE;
+
+
+--
+-- Name: doctors doctors_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.doctors
+    ADD CONSTRAINT doctors_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(user_id) ON DELETE SET NULL;
+
+
+--
+-- Name: mr_doctor_allotments mr_doctor_allotments_doctor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_doctor_allotments
+    ADD CONSTRAINT mr_doctor_allotments_doctor_id_fkey FOREIGN KEY (doctor_id) REFERENCES public.doctors(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mr_doctor_allotments mr_doctor_allotments_mr_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_doctor_allotments
+    ADD CONSTRAINT mr_doctor_allotments_mr_user_id_fkey FOREIGN KEY (mr_user_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: mr_sales_order_items mr_sales_order_items_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_sales_order_items
+    ADD CONSTRAINT mr_sales_order_items_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.product_batches(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: mr_sales_order_items mr_sales_order_items_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_sales_order_items
+    ADD CONSTRAINT mr_sales_order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.mr_sales_orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mr_sales_order_items mr_sales_order_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_sales_order_items
+    ADD CONSTRAINT mr_sales_order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: mr_sales_orders mr_sales_orders_mr_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_sales_orders
+    ADD CONSTRAINT mr_sales_orders_mr_user_id_fkey FOREIGN KEY (mr_user_id) REFERENCES public.profiles(user_id) ON DELETE RESTRICT;
+
+
+--
+-- Name: mr_sales_targets mr_sales_targets_mr_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_sales_targets
+    ADD CONSTRAINT mr_sales_targets_mr_user_id_fkey FOREIGN KEY (mr_user_id) REFERENCES public.profiles(user_id) ON DELETE CASCADE;
+
+
+--
 -- Name: mr_stock_summary mr_stock_summary_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1905,6 +2401,38 @@ ALTER TABLE ONLY public.mr_stock_summary
 
 ALTER TABLE ONLY public.mr_stock_summary
     ADD CONSTRAINT mr_stock_summary_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mr_visit_logs mr_visit_logs_clinic_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_visit_logs
+    ADD CONSTRAINT mr_visit_logs_clinic_id_fkey FOREIGN KEY (clinic_id) REFERENCES public.doctor_clinics(id) ON DELETE SET NULL;
+
+
+--
+-- Name: mr_visit_logs mr_visit_logs_doctor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_visit_logs
+    ADD CONSTRAINT mr_visit_logs_doctor_id_fkey FOREIGN KEY (doctor_id) REFERENCES public.doctors(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: mr_visit_logs mr_visit_logs_linked_sale_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_visit_logs
+    ADD CONSTRAINT mr_visit_logs_linked_sale_order_id_fkey FOREIGN KEY (linked_sale_order_id) REFERENCES public.mr_sales_orders(id) ON DELETE SET NULL;
+
+
+--
+-- Name: mr_visit_logs mr_visit_logs_mr_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_visit_logs
+    ADD CONSTRAINT mr_visit_logs_mr_user_id_fkey FOREIGN KEY (mr_user_id) REFERENCES public.profiles(user_id) ON DELETE RESTRICT;
 
 
 --
@@ -2084,6 +2612,25 @@ ALTER TABLE ONLY public.stock_transactions
 
 
 --
+-- Name: mr_sales_orders trigger_update_updated_at; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mr_sales_orders
+    ADD CONSTRAINT trigger_update_updated_at FOREIGN KEY (id) REFERENCES public.mr_sales_orders(id) ON UPDATE CASCADE;
+
+
+--
+-- Name: profiles Admin can manage all profiles; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admin can manage all profiles" ON public.profiles USING ((EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE ((p.user_id = auth.uid()) AND (p.role = 'admin'::public.user_role))))) WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE ((p.user_id = auth.uid()) AND (p.role = 'admin'::public.user_role)))));
+
+
+--
 -- Name: suppliers Admin can manage suppliers; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -2129,10 +2676,39 @@ CREATE POLICY "Admins can do everything on products" ON public.products USING ((
 
 
 --
+-- Name: profiles MR can view their own profile; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "MR can view their own profile" ON public.profiles FOR SELECT USING (((auth.uid() = user_id) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE ((p.user_id = auth.uid()) AND (p.role = 'mr'::public.user_role))))));
+
+
+--
+-- Name: mr_sales_order_items MR users can create sales order items; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "MR users can create sales order items" ON public.mr_sales_order_items FOR INSERT TO authenticated WITH CHECK ((EXISTS ( SELECT 1
+   FROM public.mr_sales_orders
+  WHERE ((mr_sales_orders.id = mr_sales_order_items.order_id) AND (mr_sales_orders.mr_user_id = auth.uid())))));
+
+
+--
+-- Name: mr_sales_orders MR users can create sales orders; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "MR users can create sales orders" ON public.mr_sales_orders FOR INSERT TO authenticated WITH CHECK ((mr_user_id = auth.uid()));
+
+
+--
 -- Name: profiles Users can update their own profile; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING ((auth.uid() = user_id));
+CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (((auth.uid() = user_id) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE ((p.user_id = auth.uid()) AND (p.role = 'user'::public.user_role)))))) WITH CHECK (((auth.uid() = user_id) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE ((p.user_id = auth.uid()) AND (p.role = 'user'::public.user_role))))));
 
 
 --
@@ -2148,7 +2724,9 @@ CREATE POLICY "Users can view active suppliers" ON public.suppliers FOR SELECT U
 -- Name: profiles Users can view their own profile; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING ((auth.uid() = user_id));
+CREATE POLICY "Users can view their own profile" ON public.profiles FOR SELECT USING (((auth.uid() = user_id) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE ((p.user_id = auth.uid()) AND (p.role = 'user'::public.user_role))))));
 
 
 --
@@ -2564,12 +3142,6 @@ CREATE POLICY products_update_policy ON public.products FOR UPDATE TO authentica
    FROM public.profiles
   WHERE ((profiles.user_id = auth.uid()) AND (profiles.role = 'admin'::public.user_role)))));
 
-
---
--- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: stock_adjustments; Type: ROW SECURITY; Schema: public; Owner: -
