@@ -50,8 +50,8 @@ class LocationService {
       dev.log('LocationService: Fetching current location');
       
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
+        desiredAccuracy: LocationAccuracy.medium, // Changed to medium for faster response
+        timeLimit: const Duration(seconds: 10), // Reduced timeout
       );
       
       dev.log('LocationService: Current location: ${position.latitude}, ${position.longitude}');
@@ -70,9 +70,16 @@ class LocationService {
     try {
       dev.log('LocationService: Getting address for coordinates: $latitude, $longitude');
       
+      // Use timeout for faster response and better error handling
       List<Placemark> placemarks = await placemarkFromCoordinates(
         latitude,
         longitude,
+      ).timeout(
+        const Duration(seconds: 8), // Reduced timeout for faster response
+        onTimeout: () {
+          dev.log('LocationService: Geocoding timeout for coordinates: $latitude, $longitude');
+          throw Exception('Address lookup timed out');
+        },
       );
       
       if (placemarks.isNotEmpty) {

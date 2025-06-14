@@ -23,6 +23,8 @@ class EditClinicModal extends StatefulWidget {
 class _EditClinicModalState extends State<EditClinicModal> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _clinicNameController;
+  
+  // Hidden controllers for coordinates (not shown in UI)
   late final TextEditingController _latitudeController;
   late final TextEditingController _longitudeController;
   
@@ -30,6 +32,7 @@ class _EditClinicModalState extends State<EditClinicModal> {
   bool _isLoading = false;
   AddressDetails? _addressDetails;
   bool _isLoadingAddress = false;
+  bool _hasValidLocation = false;
 
   bool get isEditing => widget.clinic != null;
 
@@ -49,19 +52,22 @@ class _EditClinicModalState extends State<EditClinicModal> {
     _latitudeController.addListener(_onCoordinatesChanged);
     _longitudeController.addListener(_onCoordinatesChanged);
     
-    // Auto-fetch location for new clinics
-    if (!isEditing) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Auto-fetch location for all cases
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!isEditing) {
+        // For new clinics, fetch current location automatically
         _fetchCurrentLocation();
-      });
-    } else {
-      // Fetch address for existing clinic coordinates
-      if (widget.clinic?.latitude != null && widget.clinic?.longitude != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+      } else {
+        // For existing clinics, fetch address from stored coordinates
+        if (widget.clinic?.latitude != null && widget.clinic?.longitude != null) {
+          _hasValidLocation = true; // Set as valid since we have existing coordinates
           _fetchAddressFromCoordinates(widget.clinic!.latitude!, widget.clinic!.longitude!);
-        });
+        } else {
+          // If existing clinic has no coordinates, fetch current location
+          _fetchCurrentLocation();
+        }
       }
-    }
+    });
   }
 
   @override
@@ -83,8 +89,8 @@ class _EditClinicModalState extends State<EditClinicModal> {
       final lon = double.tryParse(lonText);
       
       if (lat != null && lon != null && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-        // Debounce the address fetching to avoid too many API calls
-        Future.delayed(const Duration(milliseconds: 500), () {
+        // Reduced debounce delay for faster response
+        Future.delayed(const Duration(milliseconds: 200), () {
           if (mounted && 
               _latitudeController.text.trim() == latText && 
               _longitudeController.text.trim() == lonText) {
@@ -96,6 +102,7 @@ class _EditClinicModalState extends State<EditClinicModal> {
         if (mounted) {
           setState(() {
             _addressDetails = null;
+            _hasValidLocation = false;
           });
         }
       }
@@ -104,6 +111,7 @@ class _EditClinicModalState extends State<EditClinicModal> {
       if (mounted) {
         setState(() {
           _addressDetails = null;
+          _hasValidLocation = false;
         });
       }
     }
@@ -133,15 +141,6 @@ class _EditClinicModalState extends State<EditClinicModal> {
         
         // Fetch address details for the current location
         await _fetchAddressFromCoordinates(position.latitude, position.longitude);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Current location fetched successfully'),
-              backgroundColor: Color(0xFF059669),
-            ),
-          );
-        }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -176,6 +175,7 @@ class _EditClinicModalState extends State<EditClinicModal> {
       if (mounted) {
         setState(() {
           _addressDetails = addressDetails;
+          _hasValidLocation = addressDetails != null;
           _isLoadingAddress = false;
         });
       }
@@ -183,6 +183,7 @@ class _EditClinicModalState extends State<EditClinicModal> {
       if (mounted) {
         setState(() {
           _addressDetails = null;
+          _hasValidLocation = false;
           _isLoadingAddress = false;
         });
       }
@@ -266,7 +267,7 @@ class _EditClinicModalState extends State<EditClinicModal> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      // Location coordinates section with auto-fetch button
+                      // Location section - showing address only
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -285,124 +286,146 @@ class _EditClinicModalState extends State<EditClinicModal> {
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
-                                const Text(
-                                  'Clinic Location',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF1E293B),
+                                const Expanded(
+                                  child: Text(
+                                    'Clinic Address',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF1E293B),
+                                    ),
                                   ),
                                 ),
+                                if (_isLoadingAddress)
+                                  const Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Fetching...',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _latitudeController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Latitude',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    keyboardType: TextInputType.number,
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Please enter latitude';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _longitudeController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Longitude',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    keyboardType: TextInputType.number,
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Please enter longitude';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
                             // Address display section
-                            if (_isLoadingAddress || _addressDetails != null) ...[
-                              const SizedBox(height: 12),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: _hasValidLocation 
+                                      ? const Color(0xFF059669) 
+                                      : const Color(0xFFE2E8F0),
                                 ),
-                                child: _isLoadingAddress
-                                    ? const Row(
-                                        children: [
-                                          SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
-                                            ),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Fetching address...',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Color(0xFF64748B),
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : _addressDetails != null
-                                        ? Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.place_rounded,
-                                                    size: 16,
-                                                    color: Color(0xFF059669),
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  const Text(
-                                                    'Address:',
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                      fontWeight: FontWeight.w500,
-                                                      color: Color(0xFF1E293B),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                _addressDetails!.formattedAddress.isNotEmpty
-                                                    ? _addressDetails!.formattedAddress
-                                                    : 'Address not available',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  color: Color(0xFF64748B),
-                                                  height: 1.4,
-                                                ),
-                                              ),
-                                            ],
-                                          )
-                                        : const SizedBox.shrink(),
                               ),
-                            ]
+                              child: _isLoadingAddress
+                                  ? const Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2563EB)),
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Fetching address...',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : _addressDetails != null
+                                      ? Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.place_rounded,
+                                                  size: 16,
+                                                  color: _hasValidLocation 
+                                                      ? const Color(0xFF059669)
+                                                      : const Color(0xFF64748B),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  _hasValidLocation ? 'Current Address:' : 'Address:',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: _hasValidLocation 
+                                                        ? const Color(0xFF059669)
+                                                        : const Color(0xFF1E293B),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _addressDetails!.formattedAddress.isNotEmpty
+                                                  ? _addressDetails!.formattedAddress
+                                                  : 'Address not available',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Color(0xFF64748B),
+                                                height: 1.4,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.location_off_rounded,
+                                                  size: 16,
+                                                  color: Color(0xFF64748B),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                const Text(
+                                                  'No location set',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Color(0xFF64748B),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            const Text(
+                                              'Location will be fetched automatically',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Color(0xFF64748B),
+                                                height: 1.4,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                            ),
                           ],
                         ),
                       ),
@@ -568,6 +591,17 @@ class _EditClinicModalState extends State<EditClinicModal> {
 
   Future<void> _saveClinic() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    // Check if we have valid location coordinates
+    if (!_hasValidLocation || _latitudeController.text.trim().isEmpty || _longitudeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please set a valid clinic location first'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
