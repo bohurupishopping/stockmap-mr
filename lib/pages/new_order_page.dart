@@ -6,11 +6,9 @@ import '../bloc/new_order/new_order_event.dart';
 import '../bloc/new_order/new_order_state.dart';
 
 import '../widgets/loading_overlay.dart';
-import '../widgets/new_order/stock_selection_section.dart';
-import '../widgets/new_order/cart_section.dart';
-import '../widgets/new_order/customer_section.dart';
-import '../widgets/new_order/order_review_section.dart';
 import '../widgets/custom_bottom_navigation.dart';
+import '../widgets/new_order/combined_product_cart_section.dart';
+import '../widgets/new_order/combined_customer_review_section.dart';
 
 class NewOrderPage extends StatefulWidget {
   const NewOrderPage({super.key});
@@ -21,25 +19,17 @@ class NewOrderPage extends StatefulWidget {
 
 class _NewOrderPageState extends State<NewOrderPage>
     with TickerProviderStateMixin {
-  late TabController _tabController;
   final PageController _pageController = PageController();
   int _currentStep = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-  }
-
-  @override
   void dispose() {
-    _tabController.dispose();
     _pageController.dispose();
     super.dispose();
   }
 
   void _nextStep() {
-    if (_currentStep < 3) {
+    if (_currentStep < 1) {
       setState(() {
         _currentStep++;
       });
@@ -48,7 +38,6 @@ class _NewOrderPageState extends State<NewOrderPage>
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
-      _tabController.animateTo(_currentStep);
     }
   }
 
@@ -62,21 +51,9 @@ class _NewOrderPageState extends State<NewOrderPage>
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
-      _tabController.animateTo(_currentStep);
     }
   }
 
-  void _goToStep(int step) {
-    setState(() {
-      _currentStep = step;
-    });
-    _pageController.animateToPage(
-      step,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-    _tabController.animateTo(step);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,31 +62,7 @@ class _NewOrderPageState extends State<NewOrderPage>
           NewOrderBloc()..add(const NewOrderEvent.loadMrStock()),
       child: BlocConsumer<NewOrderBloc, NewOrderState>(
         listener: (context, state) {
-          if (state.hasError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage!),
-                backgroundColor: Colors.red,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            );
-          }
-
-          if (state.hasSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.successMessage!),
-                backgroundColor: Colors.green,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            );
-          }
+          // Notifications removed for cleaner UX
 
           if (state.isOrderCreated) {
             _showOrderSuccessDialog(context, state.createdOrderId!);
@@ -127,7 +80,6 @@ class _NewOrderPageState extends State<NewOrderPage>
                   child: Column(
                     children: [
                       _buildHeader(),
-                      _buildStepIndicator(),
                       Expanded(
                         child: PageView(
                           controller: _pageController,
@@ -135,11 +87,11 @@ class _NewOrderPageState extends State<NewOrderPage>
                             setState(() {
                               _currentStep = index;
                             });
-                            _tabController.animateTo(index);
                           },
                           children: [
-                            StockSelectionSection(
+                            CombinedProductCartSection(
                               availableStock: state.availableStock,
+                              cartItems: state.cartItems,
                               isLoading: state.isLoadingStock,
                               onAddToCart: (stockItem, quantity) {
                                 context.read<NewOrderBloc>().add(
@@ -149,28 +101,20 @@ class _NewOrderPageState extends State<NewOrderPage>
                                   ),
                                 );
                               },
-                              onRefresh: () {
+                              onUpdateQuantity: (productId, batchId, newQuantity) {
                                 context.read<NewOrderBloc>().add(
-                                  const NewOrderEvent.loadMrStock(),
+                                  NewOrderEvent.updateCartItemQuantity(
+                                    productId: productId,
+                                    batchId: batchId,
+                                    newQuantityStrips: newQuantity,
+                                  ),
                                 );
                               },
-                            ),
-                            CartSection(
-                              cartItems: state.cartItems,
                               onRemoveItem: (productId, batchId) {
                                 context.read<NewOrderBloc>().add(
                                   NewOrderEvent.removeItemFromCart(
                                     productId: productId,
                                     batchId: batchId,
-                                  ),
-                                );
-                              },
-                              onUpdateQuantity: (productId, batchId, quantity) {
-                                context.read<NewOrderBloc>().add(
-                                  NewOrderEvent.updateCartItemQuantity(
-                                    productId: productId,
-                                    batchId: batchId,
-                                    newQuantityStrips: quantity,
                                   ),
                                 );
                               },
@@ -180,9 +124,12 @@ class _NewOrderPageState extends State<NewOrderPage>
                                 );
                               },
                             ),
-                            CustomerSection(
+                            CombinedCustomerReviewSection(
                               customerName: state.customerName,
                               notes: state.notes,
+                              cartItems: state.cartItems,
+                              totalAmount: state.totalAmount,
+                              stockValidationErrors: state.stockValidationErrors,
                               onCustomerNameChanged: (name) {
                                 context.read<NewOrderBloc>().add(
                                   NewOrderEvent.updateCustomerName(
@@ -195,11 +142,6 @@ class _NewOrderPageState extends State<NewOrderPage>
                                   NewOrderEvent.updateNotes(notes: notes),
                                 );
                               },
-                            ),
-                            OrderReviewSection(
-                              customerName: state.customerName,
-                              notes: state.notes,
-                              cartItems: state.cartItems,
                               isCreatingOrder: state.isCreatingOrder,
                               onConfirmOrder: () {
                                 context.read<NewOrderBloc>().add(
@@ -222,90 +164,7 @@ class _NewOrderPageState extends State<NewOrderPage>
     );
   }
 
-  Widget _buildStepIndicator() {
-    const stepLabels = ['Stock', 'Cart', 'Customer', 'Review'];
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: List.generate(4, (index) {
-          final isActive = index == _currentStep;
-          final isCompleted = index < _currentStep;
-
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => _goToStep(index),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: isCompleted
-                            ? const Color(0xFF10b981)
-                            : isActive
-                            ? const Color(0xFF6366f1)
-                            : Colors.grey[300],
-                        shape: BoxShape.circle,
-                      ),
-                      child: isCompleted
-                          ? const Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: 12,
-                            )
-                          : Center(
-                              child: Text(
-                                '${index + 1}',
-                                style: TextStyle(
-                                  color: isActive
-                                      ? Colors.white
-                                      : Colors.grey[600],
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      stepLabels[index],
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isActive
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: isActive
-                            ? const Color(0xFF6366f1)
-                            : isCompleted
-                            ? const Color(0xFF10b981)
-                            : Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    if (index < 3)
-                      Container(
-                        height: 2,
-                        margin: const EdgeInsets.only(top: 2),
-                        decoration: BoxDecoration(
-                          color: isCompleted
-                              ? const Color(0xFF10b981)
-                              : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(1),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
 
   Widget _buildNavigationButtons(NewOrderState state) {
     return Container(
@@ -333,7 +192,7 @@ class _NewOrderPageState extends State<NewOrderPage>
                 child: OutlinedButton(
                   onPressed: _previousStep,
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -363,7 +222,7 @@ class _NewOrderPageState extends State<NewOrderPage>
             if (_currentStep > 0) const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
-                onPressed: _currentStep < 3
+                onPressed: _currentStep < 1
                     ? _nextStep
                     : state.canCreateOrder
                     ? () {
@@ -373,18 +232,20 @@ class _NewOrderPageState extends State<NewOrderPage>
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  backgroundColor: const Color(0xFF6366f1),
+                  backgroundColor: _currentStep == 1
+                      ? const Color(0xFF10b981)
+                      : const Color(0xFF6366f1),
                   foregroundColor: Colors.white,
                   elevation: 0,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (state.isCreatingOrder && _currentStep == 3)
+                    if (state.isCreatingOrder && _currentStep == 1)
                       const SizedBox(
                         width: 14,
                         height: 14,
@@ -397,7 +258,7 @@ class _NewOrderPageState extends State<NewOrderPage>
                       )
                     else
                       Icon(
-                        _currentStep < 3
+                        _currentStep < 1
                             ? Icons.arrow_forward_ios_rounded
                             : Icons.check_rounded,
                         size: 14,
@@ -405,7 +266,7 @@ class _NewOrderPageState extends State<NewOrderPage>
                       ),
                     const SizedBox(width: 6),
                     Text(
-                      _currentStep < 3 ? 'Next' : 'Create Order',
+                      _currentStep < 1 ? 'Next' : 'Create Order',
                       style: const TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
@@ -423,7 +284,7 @@ class _NewOrderPageState extends State<NewOrderPage>
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -434,30 +295,9 @@ class _NewOrderPageState extends State<NewOrderPage>
           ),
         ],
       ),
-      child: Row(
+      child: const Row(
         children: [
-          IconButton(
-            onPressed: () => context.go('/dashboard'),
-            icon: const Icon(
-              Icons.home_rounded,
-              color: Color(0xFF6366f1),
-              size: 24,
-            ),
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF6366f1).withValues(alpha: 0.1),
-              padding: const EdgeInsets.all(8),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'New Order',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1f2937),
-            ),
-          ),
-          const Spacer(),
+          Spacer(),
         ],
       ),
     );
@@ -587,7 +427,7 @@ class _NewOrderPageState extends State<NewOrderPage>
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
                         );
-                        _tabController.animateTo(0);
+
                       },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
