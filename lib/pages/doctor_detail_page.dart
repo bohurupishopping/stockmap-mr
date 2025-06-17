@@ -130,97 +130,113 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
   Widget _buildDoctorInfoSection(Doctor doctor, bool isTablet) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
       ),
       child: Column(
         children: [
           // Header with edit button
           Row(
             children: [
-              const Text(
-                'Doctor Information',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.medical_information_rounded,
+                      size: 16,
+                      color: const Color(0xFF3B82F6),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Doctor Information',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF3B82F6),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const Spacer(),
-              IconButton(
-                onPressed: () => _showEditDoctorModal(doctor),
-                icon: const Icon(
-                  Icons.edit_rounded,
-                  size: 20,
-                  color: Color(0xFF2563EB),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                tooltip: 'Edit Doctor',
+                child: IconButton(
+                  onPressed: () => _showEditDoctorModal(doctor),
+                  icon: const Icon(
+                    Icons.edit_rounded,
+                    size: 18,
+                    color: Color(0xFF3B82F6),
+                  ),
+                  tooltip: 'Edit Doctor',
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          // Doctor info content
+          const SizedBox(height: 16),
+          // Compact doctor info in single row
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar and Tier
-              Column(
+              // Avatar with tier overlay
+              Stack(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2563EB).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF3B82F6).withOpacity(0.1),
+                          const Color(0xFF1D4ED8).withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: const Color(0xFF2563EB).withOpacity(0.3),
-                        width: 1.5,
+                        color: const Color(0xFF3B82F6).withOpacity(0.2),
+                        width: 2,
                       ),
                     ),
                     child: const Center(
                       child: Icon(
-                        Icons.medical_information_rounded,
-                        color: Color(0xFF2563EB),
+                        Icons.person_rounded,
+                        color: Color(0xFF3B82F6),
                         size: 28,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  _buildTierBadge(doctor.tier),
+                  // Tier badge positioned at bottom right
+                  Positioned(
+                    bottom: -2,
+                    right: -2,
+                    child: _buildCompactTierBadge(doctor.tier),
+                  ),
                 ],
               ),
               const SizedBox(width: 16),
-              // Contact Details
+              // Doctor details - responsive layout
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Name and Specialty
-                    Text(
-                      doctor.fullName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
-                      ),
-                    ),
-                    if (doctor.specialty != null) 
-                      Text(
-                        doctor.specialty!,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    const SizedBox(height: 8),
-                    // Contact Info in Wrap
-                    _buildCompactContactInfo(doctor, isTablet),
-                  ],
-                ),
+                child: isTablet 
+                  ? _buildTabletDoctorInfo(doctor)
+                  : _buildMobileDoctorInfo(doctor),
               ),
             ],
           ),
@@ -229,128 +245,219 @@ class _DoctorDetailPageState extends State<DoctorDetailPage> {
     );
   }
 
-  Widget _buildCompactContactInfo(Doctor doctor, bool isTablet) {
-    final contacts = <Map<String, dynamic>>[];
+  Widget _buildMobileDoctorInfo(Doctor doctor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Name and specialty in one row
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    doctor.fullName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (doctor.specialty != null) 
+                    Text(
+                      doctor.specialty!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Contact info in compact chips
+        _buildCompactContactRow(doctor),
+      ],
+    );
+  }
+
+  Widget _buildTabletDoctorInfo(Doctor doctor) {
+    return Row(
+      children: [
+        // Name and specialty column
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                doctor.fullName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E293B),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (doctor.specialty != null) 
+                Text(
+                  doctor.specialty!,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        // Contact info
+        Expanded(
+          flex: 3,
+          child: _buildCompactContactRow(doctor),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactContactRow(Doctor doctor) {
+    final contacts = <Widget>[];
     
     if (doctor.phoneNumber != null && doctor.phoneNumber!.isNotEmpty) {
-      contacts.add({
-        'icon': Icons.phone_rounded,
-        'value': doctor.phoneNumber!,
-        'color': const Color(0xFF059669),
-      });
+      contacts.add(_buildCompactContactChip(
+        Icons.phone_rounded,
+        doctor.phoneNumber!,
+        const Color(0xFF059669),
+      ));
     }
     
     if (doctor.email != null && doctor.email!.isNotEmpty) {
-      contacts.add({
-        'icon': Icons.email_rounded,
-        'value': doctor.email!,
-        'color': const Color(0xFF7C3AED),
-      });
+      contacts.add(_buildCompactContactChip(
+        Icons.email_rounded,
+        doctor.email!,
+        const Color(0xFF3B82F6),
+      ));
     }
     
     if (doctor.clinicAddress != null && doctor.clinicAddress!.isNotEmpty) {
-      contacts.add({
-        'icon': Icons.location_on_rounded,
-        'value': doctor.clinicAddress!,
-        'color': const Color(0xFFDC2626),
-      });
+      contacts.add(_buildCompactContactChip(
+        Icons.location_on_rounded,
+        doctor.clinicAddress!,
+        const Color(0xFFEF4444),
+      ));
     }
 
     if (contacts.isEmpty) return const SizedBox.shrink();
 
     return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: contacts.map((contact) => _buildContactChip(contact)).toList(),
+      spacing: 8,
+      runSpacing: 6,
+      children: contacts,
     );
   }
 
-  Widget _buildContactChip(Map<String, dynamic> contact) {
+  Widget _buildCompactContactChip(IconData icon, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: (contact['color'] as Color).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: (contact['color'] as Color).withOpacity(0.2),
+          color: color.withOpacity(0.15),
+          width: 1,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            contact['icon'] as IconData,
+            icon,
             size: 14,
-            color: contact['color'] as Color,
+            color: color,
           ),
           const SizedBox(width: 6),
-          Text(
-            contact['value'] as String,
-            style: TextStyle(
-              fontSize: 13,
-              color: contact['color'] as Color,
-              fontWeight: FontWeight.w500,
+          Flexible(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 12,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
   }
 
-
-
-  Widget _buildTierBadge(DoctorTier? tier) {
+  Widget _buildCompactTierBadge(DoctorTier? tier) {
     Color tierColor;
+    IconData tierIcon;
     
     switch (tier) {
       case DoctorTier.a:
         tierColor = const Color(0xFF059669);
+        tierIcon = Icons.emoji_events_rounded;
         break;
       case DoctorTier.b:
-        tierColor = const Color(0xFFD97706);
+        tierColor = const Color(0xFFF59E0B);
+        tierIcon = Icons.verified_rounded;
         break;
       case DoctorTier.c:
-        tierColor = const Color(0xFFDC2626);
+        tierColor = const Color(0xFFEF4444);
+        tierIcon = Icons.assignment_rounded;
         break;
       default:
         tierColor = const Color(0xFF64748B);
-    }
-
-    IconData tierIcon;
-    switch (tier) {
-      case DoctorTier.a:
-        tierIcon = Icons.emoji_events_rounded; // Trophy icon for top tier
-        break;
-      case DoctorTier.b:
-        tierIcon = Icons.verified_rounded; // Verified icon for mid tier
-        break;
-      case DoctorTier.c:
-        tierIcon = Icons.assignment_rounded; // Assignment icon for base tier
-        break;
-      default:
         tierIcon = Icons.help_outline_rounded;
     }
 
     return Container(
-      width: 40,
-      height: 40,
+      width: 24,
+      height: 24,
       decoration: BoxDecoration(
-        color: tierColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
+        color: tierColor,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: tierColor.withOpacity(0.3),
-          width: 1.5,
+          color: Colors.white,
+          width: 2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: tierColor.withOpacity(0.3),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Icon(
         tierIcon,
-        color: tierColor,
-        size: 24,
+        color: Colors.white,
+        size: 12,
       ),
     );
   }
+
+
+
+
+
+
 
   Widget _buildVisitHistorySection(Doctor doctor, List<MrVisitLog> visitHistory, bool isTablet) {
     return Container(

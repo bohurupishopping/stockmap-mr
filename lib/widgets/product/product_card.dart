@@ -281,6 +281,19 @@ class ProductCard extends StatelessWidget {
   }
 
   Widget _buildStockSection(BuildContext context, bool isCompact) {
+    // Calculate boxes and strips for display
+    final boxes = product.closingStockMr ~/ product.stripsPerBox;
+    final remainingStrips = product.closingStockMr % product.stripsPerBox;
+    
+    // Format for bold display (boxes + strips)
+    String boldStockDisplay = '';
+    if (boxes > 0 && remainingStrips > 0) {
+      boldStockDisplay = '$boxes ${boxes == 1 ? 'box' : 'boxes'} + $remainingStrips strips';
+    } else if (boxes > 0) {
+      boldStockDisplay = '$boxes ${boxes == 1 ? 'box' : 'boxes'}';
+    } else {
+      boldStockDisplay = '$remainingStrips strips';
+    }
     
     return Container(
       padding: EdgeInsets.all(isCompact ? 10 : 12),
@@ -300,7 +313,7 @@ class ProductCard extends StatelessWidget {
               Expanded(
                 child: _buildStockLevel(
                   'MR Stock',
-                  product.formattedMrStock,
+                  boldStockDisplay,
                   Icons.person_rounded,
                   isCompact,
                 ),
@@ -325,7 +338,7 @@ class ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Available: ${product.formattedMrStock}',
+                    'Available: ${product.closingStockMr} ${product.unitOfMeasureSmallest.toLowerCase()}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -370,7 +383,7 @@ class ProductCard extends StatelessWidget {
           formattedValue,
           style: TextStyle(
             fontSize: isCompact ? 14 : 16,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w900, // Extra bold for boxes + strips display
             color: Colors.grey.shade800,
           ),
           textAlign: TextAlign.center,

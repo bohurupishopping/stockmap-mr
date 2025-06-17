@@ -5,27 +5,10 @@ import 'dart:async';
 class ProductService {
   static final _supabase = Supabase.instance.client;
   
-  // Cache for stock data with expiry
-  static final Map<String, _CachedStockData> _stockCache = {};
+  // Packaging cache only (lightweight data that rarely changes)
   static final Map<String, int> _packagingCache = {};
-  static Timer? _cacheCleanupTimer;
-  static const Duration _cacheExpiry = Duration(minutes: 5);
   
-  // Initialize cache cleanup timer
-  static void _initializeCacheCleanup() {
-    _cacheCleanupTimer?.cancel();
-    _cacheCleanupTimer = Timer.periodic(Duration(minutes: 2), (_) {
-      _cleanupExpiredCache();
-    });
-  }
-  
-  static void _cleanupExpiredCache() {
-    final now = DateTime.now();
-    _stockCache.removeWhere((key, value) => value.isExpired(now));
-  }
-  
-  static void clearCache() {
-    _stockCache.clear();
+  static void clearPackagingCache() {
     _packagingCache.clear();
   }
 
@@ -36,7 +19,7 @@ class ProductService {
     String sortField = 'product_name',
     String sortDirection = 'asc',
     bool includeStock = true,
-    bool forceRefresh = false,
+
   }) async {
     try {
       dynamic query = _supabase
@@ -143,14 +126,11 @@ class ProductService {
 
       final products = data.map((json) => Product.fromJson(json)).toList();
       
-      // Initialize cache cleanup if not already done
-      if (_cacheCleanupTimer == null) {
-        _initializeCacheCleanup();
-      }
+      // No cache initialization needed for live data
       
       // Fetch closing stock data for all products if requested
       if (includeStock) {
-        await _enrichWithClosingStockBatch(products, forceRefresh: forceRefresh);
+        await _enrichWithClosingStockBatch(products);
       }
 
       return {
@@ -230,8 +210,8 @@ class ProductService {
     }
   }
 
-  /// Optimized batch enrichment with caching
-  static Future<void> _enrichWithClosingStockBatch(List<Product> products, {bool forceRefresh = false}) async {
+  /// Optimized batch enrichment with live data
+  static Future<void> _enrichWithClosingStockBatch(List<Product> products) async {
     try {
       if (products.isEmpty) return;
       
@@ -239,8 +219,8 @@ class ProductService {
       // Get packaging data with caching
       await _loadPackagingDataBatch(productIds);
       
-      // Get stock data with batch processing and caching
-      final stockDataMap = await _getStockDataBatch(productIds, forceRefresh: forceRefresh);
+      // Get live stock data with batch processing
+      final stockDataMap = await _getLiveStockDataBatch(productIds);
       
       // Update products with calculated stock data
       for (int i = 0; i < products.length; i++) {
@@ -306,47 +286,10 @@ class ProductService {
     }
   }
   
-  /// Get stock data in batch with intelligent caching
-  static Future<Map<String, Map<String, int>>> _getStockDataBatch(List<String> productIds, {bool forceRefresh = false}) async {
-    final result = <String, Map<String, int>>{};
-    final uncachedIds = <String>[];
-    final now = DateTime.now();
-    
-    // Check cache first
-    for (final productId in productIds) {
-      final cached = _stockCache[productId];
-      if (!forceRefresh && cached != null && !cached.isExpired(now)) {
-        result[productId] = {
-          'godownStock': cached.godownStock,
-          'mrStock': cached.mrStock,
-        };
-      } else {
-        uncachedIds.add(productId);
-      }
-    }
-    
-    if (uncachedIds.isNotEmpty) {
-      // Batch fetch MR stock and godown stock
-      final batchStockData = await _calculateStockDataBatch(uncachedIds);
-      
-      // Cache and add to result
-      for (final entry in batchStockData.entries) {
-        final productId = entry.key;
-        final stockData = entry.value;
-        
-        // Cache with appropriate expiry
-        _stockCache[productId] = _CachedStockData(
-          godownStock: stockData['godownStock'] ?? 0,
-          mrStock: stockData['mrStock'] ?? 0,
-          cachedAt: now,
-          expiryDuration: _cacheExpiry,
-        );
-        
-        result[productId] = stockData;
-      }
-    }
-    
-    return result;
+  /// Get live stock data in batch (no caching for real-time data)
+  static Future<Map<String, Map<String, int>>> _getLiveStockDataBatch(List<String> productIds) async {
+    // Always fetch fresh data from Supabase for live stock information
+    return await _calculateStockDataBatch(productIds);
   }
   
   /// Batch calculate stock data for multiple products
@@ -438,16 +381,16 @@ class ProductService {
     }
   }
   
-  /// Get stock for a single product (with caching)
-  static Future<Map<String, int>> getProductStock(String productId, {bool forceRefresh = false}) async {
-    final stockData = await _getStockDataBatch([productId], forceRefresh: forceRefresh);
+  /// Get stock for a single product (live data)
+  static Future<Map<String, int>> getProductStock(String productId) async {
+    final stockData = await _getLiveStockDataBatch([productId]);
     return stockData[productId] ?? {'godownStock': 0, 'mrStock': 0};
   }
   
-  /// Invalidate cache for specific products (useful after stock transactions)
-  static void invalidateStockCache(List<String> productIds) {
+  /// Clear packaging cache if needed (lightweight cache for packaging data only)
+  static void invalidatePackagingCache(List<String> productIds) {
     for (final productId in productIds) {
-      _stockCache.remove(productId);
+      _packagingCache.remove(productId);
     }
   }
   
@@ -471,29 +414,8 @@ class ProductService {
 
 
   
-  /// Dispose resources
+/// Dispose method to clean up resources
   static void dispose() {
-    _cacheCleanupTimer?.cancel();
-    _cacheCleanupTimer = null;
-    clearCache();
-  }
-}
-
-/// Cache data structure for stock information
-class _CachedStockData {
-  final int godownStock;
-  final int mrStock;
-  final DateTime cachedAt;
-  final Duration expiryDuration;
-  
-  _CachedStockData({
-    required this.godownStock,
-    required this.mrStock,
-    required this.cachedAt,
-    required this.expiryDuration,
-  });
-  
-  bool isExpired(DateTime now) {
-    return now.difference(cachedAt) > expiryDuration;
+    clearPackagingCache();
   }
 }
