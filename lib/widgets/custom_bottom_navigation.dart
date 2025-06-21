@@ -38,23 +38,23 @@ class CustomBottomNavigation extends StatelessWidget {
         const BottomNavigationItem(
           name: 'Orders',
           icon: Icons.description,
-          path: '/orders',
+          path: '/dashboard/orders',
         ),
         const BottomNavigationItem(
           name: 'Create',
           icon: Icons.add,
           isSpecial: true,
-          path: '/create',
+          path: '/dashboard/create',
         ),
         const BottomNavigationItem(
           name: 'Stock',
           icon: Icons.inventory,
-          path: '/stock',
+          path: '/dashboard/stock',
         ),
         const BottomNavigationItem(
           name: 'Goals',
           icon: Icons.speed,
-          path: '/speedometer',
+          path: '/dashboard/speedometer',
         ),
       ];
 
@@ -174,7 +174,7 @@ class CustomBottomNavigation extends StatelessWidget {
         } else if (onNewOrderPressed != null) {
           onNewOrderPressed!();
         } else {
-          context.go('/create');
+          context.go('/dashboard/create');
         }
       },
       child: Container(

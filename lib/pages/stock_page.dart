@@ -191,8 +191,8 @@ class _StockPageState extends State<StockPage> {
   @override
   Widget build(BuildContext context) {
     return PageWithBottomNav(
-      currentPath: '/stock',
-      onNewOrderPressed: () => context.go('/create'),
+      currentPath: '/dashboard/stock',
+      onNewOrderPressed: () => context.go('/dashboard/create'),
       child: Container(
         color: Colors.white,
         child: SafeArea(

@@ -54,8 +54,8 @@ class _ActivityPageState extends State<ActivityPage> {
   @override
   Widget build(BuildContext context) {
     return PageWithBottomNav(
-      currentPath: '/activity',
-      onNewOrderPressed: () => context.go('/create'),
+      currentPath: '/dashboard/activity',
+      onNewOrderPressed: () => context.go('/dashboard/create'),
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
@@ -273,7 +273,7 @@ class _TodoVisitCard extends StatelessWidget {
         shadowColor: Colors.black.withOpacity(0.1),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => context.go('/doctors/$doctorId'),
+          onTap: () => context.go('/dashboard/doctors/$doctorId'),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -368,7 +368,7 @@ class _EngagementCard extends StatelessWidget {
         shadowColor: Colors.black.withOpacity(0.1),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => context.go('/doctors/${engagement['id']}'),
+          onTap: () => context.go('/dashboard/doctors/${engagement['id']}'),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(

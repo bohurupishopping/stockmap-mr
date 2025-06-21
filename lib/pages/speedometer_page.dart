@@ -30,8 +30,8 @@ class _SpeedometerPageState extends State<SpeedometerPage> {
   @override
   Widget build(BuildContext context) {
     return PageWithBottomNav(
-      currentPath: '/speedometer',
-      onNewOrderPressed: () => context.go('/create'),
+      currentPath: '/dashboard/speedometer',
+      onNewOrderPressed: () => context.go('/dashboard/create'),
       child: Container(
         color: Colors.white,
         child: SafeArea(

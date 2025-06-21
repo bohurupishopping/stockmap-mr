@@ -18,7 +18,7 @@ class DashboardPage extends StatelessWidget {
       title: 'Stock',
       description: 'Manage inventory',
       icon: Icons.inventory_2_outlined,
-      route: '/stock',
+      route: '/dashboard/stock',
       color: Color(0xFF818cf8),
       gradientColors: [Color(0xFF818cf8), Color(0xFF6366f1)],
     ),
@@ -26,7 +26,7 @@ class DashboardPage extends StatelessWidget {
       title: 'Orders',
       description: 'View my orders',
       icon: Icons.receipt_long_outlined,
-      route: '/orders',
+      route: '/dashboard/orders',
       color: Color(0xFF2E7D32),
       gradientColors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
     ),
@@ -34,7 +34,7 @@ class DashboardPage extends StatelessWidget {
       title: 'Doctors',
       description: 'Manage doctors',
       icon: Icons.people_outline,
-      route: '/doctors',
+      route: '/dashboard/doctors',
       color: Color(0xFF34d399),
       gradientColors: [Color(0xFF34d399), Color(0xFF10b981)],
     ),
@@ -42,7 +42,7 @@ class DashboardPage extends StatelessWidget {
       title: 'Activity',
       description: 'View activity',
       icon: Icons.history_outlined,
-      route: '/activity',
+      route: '/dashboard/activity',
       color: Color(0xFFEC4C4C),
       gradientColors: [Color(0xFFEC4C4C), Color(0xFFE33E3E)],
     ),
@@ -58,7 +58,7 @@ class DashboardPage extends StatelessWidget {
         } else if (state is AuthAuthenticated) {
           return PageWithBottomNav(
             currentPath: '/dashboard',
-            onNewOrderPressed: () => context.go('/create'),
+            onNewOrderPressed: () => context.go('/dashboard/create'),
             child: _DashboardContent(user: state.user, navItems: navItems),
           );
         } else if (state is AuthUnauthenticated) {
@@ -212,8 +212,8 @@ class _DashboardContent extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: () {
-            // Navigation logic remains unchanged.
-            if (['/stock', '/report', '/create', '/orders', '/doctors', '/activity'].contains(item.route)) {
+            // Navigation logic updated for nested routes.
+            if (['/dashboard/stock', '/dashboard/report', '/dashboard/create', '/dashboard/orders', '/dashboard/doctors', '/dashboard/activity'].contains(item.route)) {
               context.go(item.route);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(

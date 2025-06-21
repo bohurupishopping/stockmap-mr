@@ -66,49 +66,53 @@ class AppRouter {
           path: '/dashboard',
           name: 'dashboard',
           builder: (context, state) => const DashboardPage(),
-        ),
-        GoRoute(
-          path: '/stock',
-          name: 'stock',
-          builder: (context, state) => const StockPage(),
-        ),
-        GoRoute(
-          path: '/create',
-          name: 'create',
-          builder: (context, state) => const NewOrderPage(),
-        ),
-        GoRoute(
-          path: '/report',
-          name: 'report',
-          builder: (context, state) => const ReportPage(),
-        ),
-        GoRoute(
-          path: '/orders',
-          name: 'orders',
-          builder: (context, state) => const OrdersPage(),
-        ),
-        GoRoute(
-          path: '/speedometer',
-          name: 'speedometer',
-          builder: (context, state) => const SpeedometerPage(),
-        ),
-        GoRoute(
-          path: '/doctors',
-          name: 'doctors',
-          builder: (context, state) => const DoctorsListPage(),
-        ),
-        GoRoute(
-          path: '/doctors/:doctorId',
-          name: 'doctor_detail',
-          builder: (context, state) {
-            final doctorId = state.pathParameters['doctorId']!;
-            return DoctorDetailPage(doctorId: doctorId);
-          },
-        ),
-        GoRoute(
-          path: '/activity',
-          name: 'activity',
-          builder: (context, state) => const ActivityPage(),
+          routes: [
+            GoRoute(
+              path: 'stock',
+              name: 'stock',
+              builder: (context, state) => const StockPage(),
+            ),
+            GoRoute(
+              path: 'create',
+              name: 'create',
+              builder: (context, state) => const NewOrderPage(),
+            ),
+            GoRoute(
+              path: 'report',
+              name: 'report',
+              builder: (context, state) => const ReportPage(),
+            ),
+            GoRoute(
+              path: 'orders',
+              name: 'orders',
+              builder: (context, state) => const OrdersPage(),
+            ),
+            GoRoute(
+              path: 'speedometer',
+              name: 'speedometer',
+              builder: (context, state) => const SpeedometerPage(),
+            ),
+            GoRoute(
+              path: 'doctors',
+              name: 'doctors',
+              builder: (context, state) => const DoctorsListPage(),
+              routes: [
+                GoRoute(
+                  path: ':doctorId',
+                  name: 'doctor_detail',
+                  builder: (context, state) {
+                    final doctorId = state.pathParameters['doctorId']!;
+                    return DoctorDetailPage(doctorId: doctorId);
+                  },
+                ),
+              ],
+            ),
+            GoRoute(
+              path: 'activity',
+              name: 'activity',
+              builder: (context, state) => const ActivityPage(),
+            ),
+          ],
         ),
       ],
     );

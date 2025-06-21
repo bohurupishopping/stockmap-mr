@@ -50,7 +50,7 @@ class _DoctorsListPageState extends State<DoctorsListPage>
   @override
   Widget build(BuildContext context) {
     return PageWithBottomNav(
-      currentPath: '/doctors',
+      currentPath: '/dashboard/doctors',
       customNavItems: [
         const BottomNavigationItem(
           name: 'Home',
@@ -60,23 +60,23 @@ class _DoctorsListPageState extends State<DoctorsListPage>
         const BottomNavigationItem(
           name: 'Doctors',
           icon: Icons.people,
-          path: '/doctors',
+          path: '/dashboard/doctors',
         ),
         const BottomNavigationItem(
           name: 'Create',
           icon: Icons.add,
           isSpecial: true,
-          path: '/create',
+          path: '/dashboard/create',
         ),
         const BottomNavigationItem(
           name: 'Stock',
           icon: Icons.inventory,
-          path: '/stock',
+          path: '/dashboard/stock',
         ),
         const BottomNavigationItem(
           name: 'Goals',
           icon: Icons.speed,
-          path: '/speedometer',
+          path: '/dashboard/speedometer',
         ),
       ],
       child: Scaffold(
@@ -476,7 +476,7 @@ class _DoctorsListPageState extends State<DoctorsListPage>
               
               // Navigate to doctor detail page
               // ignore: use_build_context_synchronously
-              context.go('/doctors/${createdDoctor.id}');
+              context.go('/dashboard/doctors/${createdDoctor.id}');
             }
           } catch (e) {
             if (mounted) {

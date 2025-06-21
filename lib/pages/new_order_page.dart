@@ -72,8 +72,8 @@ class _NewOrderPageState extends State<NewOrderPage>
           return LoadingOverlay(
             isLoading: state.isLoadingStock || state.isCreatingOrder,
             child: PageWithBottomNav(
-              currentPath: '/create',
-              onNewOrderPressed: () => context.go('/create'),
+              currentPath: '/dashboard/create',
+              onNewOrderPressed: () => context.go('/dashboard/create'),
               child: Container(
                 color: Colors.grey[50],
                 child: SafeArea(

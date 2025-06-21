@@ -180,8 +180,8 @@ class _OrdersPageState extends State<OrdersPage> {
   @override
   Widget build(BuildContext context) {
     return PageWithBottomNav(
-      currentPath: '/orders',
-      onNewOrderPressed: () => context.go('/create'),
+      currentPath: '/dashboard/orders',
+      onNewOrderPressed: () => context.go('/dashboard/create'),
       child: Container(
         color: const Color(0xFFF8FAFC),
         child: SafeArea(

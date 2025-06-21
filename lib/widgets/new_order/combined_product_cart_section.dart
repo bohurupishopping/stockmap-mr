@@ -6,6 +6,8 @@ import '../../models/order_models.dart';
 // --- UI Constants for easy theming and consistency ---
 const _primaryColor = Color(0xFF4338CA); // A modern, deep indigo
 const _successColor = Color(0xFF10B981); // A vibrant, clear green
+const _warningColor = Color(0xFFF59E0B); // Warning amber
+const _dangerColor = Color(0xFFEF4444); // Danger red
 const _backgroundColor = Color(0xFFF3F4F6); // A light, neutral gray
 const _cardBackgroundColor = Colors.white;
 const _primaryTextColor = Color(0xFF1F2937);
@@ -62,6 +64,32 @@ class _CombinedProductCartSectionState extends State<CombinedProductCartSection>
       0,
       (sum, item) => sum + item.quantityStrips,
     );
+  }
+
+  // Helper method to check if product expires within 2 months
+  bool _isExpiringSoon(DateTime expiryDate) {
+    final now = DateTime.now();
+    final twoMonthsFromNow = DateTime(now.year, now.month + 2, now.day);
+    return expiryDate.isBefore(twoMonthsFromNow);
+  }
+
+  // Helper method to check if product is expired
+  bool _isExpired(DateTime expiryDate) {
+    return expiryDate.isBefore(DateTime.now());
+  }
+
+  // Helper method to get expiry status color
+  Color _getExpiryStatusColor(DateTime expiryDate) {
+    if (_isExpired(expiryDate)) return _dangerColor;
+    if (_isExpiringSoon(expiryDate)) return _warningColor;
+    return _successColor;
+  }
+
+  // Helper method to format expiry date
+  String _formatExpiryDate(DateTime expiryDate) {
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${expiryDate.day} ${months[expiryDate.month - 1]} ${expiryDate.year}';
   }
   
   @override
@@ -237,6 +265,9 @@ class _CombinedProductCartSectionState extends State<CombinedProductCartSection>
 
   Widget _buildProductCard(MrStockItem stockItem, CartItem? cartItem) {
     final bool isInCart = cartItem != null;
+    final bool isExpired = _isExpired(stockItem.expiryDate);
+    final bool isExpiringSoon = _isExpiringSoon(stockItem.expiryDate);
+    final Color expiryColor = _getExpiryStatusColor(stockItem.expiryDate);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -265,8 +296,56 @@ class _CombinedProductCartSectionState extends State<CombinedProductCartSection>
                   ],
                 ),
               ),
-              if (isInCart)
+              // Expiry date section on the right
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: expiryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: expiryColor.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isExpired ? Icons.warning_rounded : 
+                          isExpiringSoon ? Icons.schedule_rounded : Icons.check_circle_rounded,
+                          color: expiryColor,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _formatExpiryDate(stockItem.expiryDate),
+                          style: TextStyle(
+                            color: expiryColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isExpired || isExpiringSoon) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      isExpired ? 'EXPIRED' : 'EXPIRES SOON',
+                      style: TextStyle(
+                        color: expiryColor,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (isInCart) ...[
+                const SizedBox(width: 8),
                 const Icon(Icons.check_circle, color: _successColor, size: 20),
+              ],
             ],
           ),
           const SizedBox(height: 12),
@@ -413,6 +492,10 @@ class _CombinedProductCartSectionState extends State<CombinedProductCartSection>
   }
 
   Widget _buildCartItemCard(CartItem cartItem) {
+    final bool isExpired = _isExpired(cartItem.expiryDate);
+    final bool isExpiringSoon = _isExpiringSoon(cartItem.expiryDate);
+    final Color expiryColor = _getExpiryStatusColor(cartItem.expiryDate);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -421,29 +504,67 @@ class _CombinedProductCartSectionState extends State<CombinedProductCartSection>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _borderColor),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(cartItem.productName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: _primaryTextColor)),
-                Text('Batch: ${cartItem.batchNumber}', style: const TextStyle(fontSize: 12, color: _secondaryTextColor)),
-                const SizedBox(height: 8),
-                Text(
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(cartItem.productName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: _primaryTextColor)),
+                    Text('Batch: ${cartItem.batchNumber}', style: const TextStyle(fontSize: 12, color: _secondaryTextColor)),
+                  ],
+                ),
+              ),
+              // Expiry date for cart items
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: expiryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: expiryColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isExpired ? Icons.warning_rounded : 
+                      isExpiringSoon ? Icons.schedule_rounded : Icons.check_circle_rounded,
+                      color: expiryColor,
+                      size: 12,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      _formatExpiryDate(cartItem.expiryDate),
+                      style: TextStyle(
+                        color: expiryColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
                   '₹${(cartItem.pricePerStrip * cartItem.quantityStrips).toStringAsFixed(2)}',
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _successColor),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          _QuantitySelector(
-            quantity: cartItem.quantityStrips,
-            maxQuantity: cartItem.availableStrips,
-            onChanged: (newQuantity) {
-              widget.onUpdateQuantity(cartItem.productId, cartItem.batchId, newQuantity);
-            },
+              ),
+              _QuantitySelector(
+                quantity: cartItem.quantityStrips,
+                maxQuantity: cartItem.availableStrips,
+                onChanged: (newQuantity) {
+                  widget.onUpdateQuantity(cartItem.productId, cartItem.batchId, newQuantity);
+                },
+              ),
+            ],
           ),
         ],
       ),
